@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DesvíoApp">
+<meta name="theme-color" content="#0D1C2E">
+<title>DesvíoApp — VADOCA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal:#00B4B6; --teal-dark:#009496; --teal-dim:rgba(0,180,182,0.07);
+  --gray-mid:#6D7985; --gray-dark:#435561;
+  --navy:#0D1C2E; --navy-mid:#112030; --navy-lt:#1A2E42; --navy-card:#162840;
+  --white:#F0F6FF; --off:#C0D0E0;
+  --gold:#D4A843; --gold-dim:rgba(212,168,67,0.12);
+  --red:#E05060; --red-dim:rgba(224,80,96,0.12);
+  --green:#00C896; --green-dim:rgba(0,200,150,0.12);
+  --orange:#F07030; --orange-dim:rgba(240,112,48,0.12);
+  --border:rgba(0,180,182,0.12); --border-w:rgba(255,255,255,0.06);
+  --radius:10px; --radius-sm:6px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;line-height:1.6}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(0,180,182,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,182,0.025) 1px,transparent 1px);background-size:48px 48px}
+.screen{display:none;min-height:100vh;flex-direction:column;position:relative;z-index:1}
+.screen.active{display:flex}
+
+/* LOGIN */
+#screen-login{align-items:center;justify-content:center;padding:2rem 1.25rem;background:linear-gradient(160deg,#081422 0%,#0D1C2E 50%,#112030 100%)}
+.login-wrap{width:100%;max-width:360px}
+.login-brand{text-align:center;margin-bottom:2rem;animation:fadeUp .5s both}
+.login-logo-mark{display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));border-radius:14px;font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--navy);margin-bottom:12px;box-shadow:0 8px 32px rgba(0,180,182,0.35)}
+.login-brand h1{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:.08em;color:var(--white)}
+.login-brand p{font-size:11px;color:var(--gray-mid);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.login-box{background:rgba(26,46,66,0.7);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem 1.5rem;backdrop-filter:blur(20px);animation:fadeUp .5s .1s both}
+.login-field-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;display:block}
+.login-select{width:100%;padding:12px 14px;background:rgba(13,28,46,0.8);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300B4B6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.login-select:focus{outline:none;border-color:var(--teal)}
+.login-select option{background:#1A2E42;color:var(--white)}
+.pin-section{margin:20px 0 16px}
+.pin-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:12px;display:block}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:16px}
+.pin-dot{width:46px;height:46px;border:1.5px solid rgba(0,180,182,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--teal);transition:all .15s;background:rgba(0,180,182,0.04)}
+.pin-dot.filled{border-color:var(--teal);background:rgba(0,180,182,0.12);box-shadow:0 0 12px rgba(0,180,182,0.2)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.key{padding:14px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius-sm);color:var(--white);font-size:18px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;text-align:center;transition:all .12s}
+.key:active{background:rgba(0,180,182,0.15);border-color:var(--teal);transform:scale(0.95)}
+.key.del{font-size:16px;color:var(--gray-mid)}
+.key.zero{grid-column:2}
+.btn-login{width:100%;padding:14px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));color:var(--navy);border:none;border-radius:var(--radius-sm);font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:.06em;cursor:pointer;margin-top:8px;transition:all .2s;box-shadow:0 4px 20px rgba(0,180,182,0.3)}
+.btn-login:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.login-error{color:var(--red);font-size:12px;text-align:center;margin-top:10px;min-height:16px}
+.login-hint{font-size:11px;color:var(--gray-dark);text-align:center;margin-top:10px;line-height:1.6}
+
+/* APP SHELL */
+.app-header{background:rgba(13,28,46,0.95);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--navy)}
+.hdr-app{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);letter-spacing:.06em}
+.hdr-user{font-size:11px;color:var(--gray-mid)}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.role-chip{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--teal-dim);border:1px solid rgba(0,180,182,0.25);color:var(--teal)}
+.role-chip.gold{background:var(--gold-dim);border-color:rgba(212,168,67,0.3);color:var(--gold)}
+.btn-out{padding:6px 12px;border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--off);font-size:12px;cursor:pointer}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
+.sync-dot.off{background:var(--red);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TABS */
+.tabs{display:flex;background:rgba(13,28,46,0.8);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;backdrop-filter:blur(10px)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:fit-content;padding:11px 16px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;text-align:center;cursor:pointer;color:var(--gray-mid);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.app-content{flex:1;padding:16px;overflow-y:auto}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(13,28,46,0.85);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(8px)}
+.loading-spinner{width:44px;height:44px;border:3px solid rgba(0,180,182,0.15);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--teal);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+
+/* CARDS */
+.card{background:var(--navy-card);border:1px solid var(--border-w);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:.04em;margin-bottom:14px;color:var(--white)}
+.badge{display:inline-block;padding:3px 9px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.b-ps{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(240,112,48,0.25)}
+.b-pj{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,67,0.25)}
+.b-pgc{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,180,182,0.25)}
+.b-cerrado{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,200,150,0.25)}
+.b-rechazado{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,80,96,0.25)}
+.sev-critico{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,80,96,0.25)}
+.sev-mayor{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(240,112,48,0.25)}
+.sev-menor{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,200,150,0.25)}
+
+/* DESVIO ITEM */
+.desvio-item{background:var(--navy-card);border:1px solid var(--border-w);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.desvio-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal);opacity:0;transition:opacity .15s}
+.desvio-item:active{border-color:rgba(0,180,182,0.3)}
+.desvio-item:active::before{opacity:1}
+.di-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.di-id{font-size:10px;font-weight:700;color:var(--teal);letter-spacing:.1em;margin-bottom:3px}
+.di-desc{font-size:13px;font-weight:500;line-height:1.4;color:var(--white)}
+.di-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.di-tag{font-size:11px;color:var(--gray-mid)}
+
+/* FORMS */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:7px}
+.form-input,.form-select,.form-textarea{width:100%;padding:11px 13px;background:rgba(13,28,46,0.8);border:1px solid var(--border-w);border-radius:var(--radius-sm);color:var(--white);font-size:14px;font-family:'DM Sans',sans-serif;transition:border-color .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,180,182,0.08)}
+.form-textarea{resize:vertical;min-height:90px;line-height:1.5}
+.form-select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300B4B6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+.form-select option{background:#1A2E42}
+
+/* BUTTONS */
+.btn{padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;letter-spacing:.05em;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal-dark));color:var(--navy);box-shadow:0 4px 16px rgba(0,180,182,0.25)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b88a2a);color:var(--navy)}
+.btn-success{background:linear-gradient(135deg,var(--green),#00a07a);color:var(--navy)}
+.btn-danger{background:linear-gradient(135deg,var(--red),#c03040);color:white}
+.btn-ghost{background:rgba(255,255,255,0.05);border:1px solid var(--border-w);color:var(--off)}
+.btn-full{width:100%;display:block;text-align:center;margin-bottom:10px}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{flex:1}
+
+/* IA BOX */
+.ia-box{background:linear-gradient(135deg,rgba(0,180,182,0.06),rgba(0,180,182,0.02));border:1px solid rgba(0,180,182,0.22);border-radius:var(--radius);padding:16px;margin:14px 0}
+.ia-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ia-icon{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--navy);flex-shrink:0}
+.ia-header-text{font-size:12px;font-weight:700;color:var(--teal);letter-spacing:.06em;text-transform:uppercase}
+.ia-body{font-size:13.5px;color:var(--off);line-height:1.65}
+.ia-body strong{color:var(--white)}
+
+/* AUDIO */
+.audio-box{background:rgba(13,28,46,0.8);border:1px solid var(--border-w);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.audio-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:rgba(0,180,182,0.08);border:1.5px solid rgba(0,180,182,0.25);border-radius:var(--radius-sm);color:var(--teal);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.audio-btn.recording{background:rgba(224,80,96,0.1);border-color:rgba(224,80,96,0.4);color:var(--red);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.audio-dot{width:10px;height:10px;border-radius:50%;background:currentColor}
+.audio-transcript{margin-top:10px;font-size:13px;color:var(--off);line-height:1.5;min-height:40px;padding:10px;background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);white-space:pre-wrap}
+.audio-transcript.empty{color:var(--gray-dark);font-style:italic}
+
+/* PASO INDICATOR */
+.paso-bar{display:flex;gap:6px;margin-bottom:18px}
+.paso-seg{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.08);transition:background .3s}
+.paso-seg.done{background:var(--teal-dark)}
+.paso-seg.active{background:var(--teal)}
+
+/* HISTORIAL */
+.hist-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.hist-item:last-child{border-bottom:none}
+.hist-line{display:flex;flex-direction:column;align-items:center}
+.hist-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:4px}
+.hist-connector{width:1px;flex:1;background:rgba(0,180,182,0.15);margin-top:4px}
+.hist-body{flex:1}
+.hist-action{font-size:13px;font-weight:600;color:var(--white)}
+.hist-meta{font-size:11px;color:var(--gray-mid);margin-top:2px}
+.hist-detail{font-size:12px;color:var(--gray-dark);margin-top:3px;line-height:1.4}
+
+/* INFO ROWS */
+.info-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.info-row:last-child{border-bottom:none}
+.info-lbl{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;min-width:120px;flex-shrink:0;padding-top:1px}
+.info-val{font-size:13.5px;color:var(--off);line-height:1.5}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--navy-mid);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:slideUp .22s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:.5}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:32px;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:16px;color:var(--white)}
+
+/* ALERTS */
+.alert{padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;line-height:1.5;margin-bottom:12px}
+.alert-info{background:rgba(0,180,182,0.08);border-left:3px solid var(--teal);color:var(--off)}
+.alert-warning{background:rgba(212,168,67,0.08);border-left:3px solid var(--gold);color:var(--off)}
+.alert-danger{background:rgba(224,80,96,0.08);border-left:3px solid var(--red);color:var(--off)}
+.alert-success{background:rgba(0,200,150,0.08);border-left:3px solid var(--green);color:var(--off)}
+.alert strong{color:var(--white)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--navy-card);border:1px solid var(--border-w);border-radius:var(--radius);padding:14px;text-align:center;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),transparent);opacity:.4}
+.stat-num{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;color:var(--teal);line-height:1}
+.stat-lbl{font-size:11px;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.07em;margin-top:4px}
+.stat-card.red .stat-num{color:var(--red)}
+.stat-card.red::after{background:linear-gradient(90deg,var(--red),transparent)}
+.stat-card.gold .stat-num{color:var(--gold)}
+.stat-card.gold::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.stat-card.green .stat-num{color:var(--green)}
+.stat-card.green::after{background:linear-gradient(90deg,var(--green),transparent)}
+.bar-item{margin-bottom:10px}
+.bar-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.bar-label{color:var(--off)}
+.bar-val{font-weight:700;color:var(--teal)}
+.bar-track{background:rgba(255,255,255,0.05);border-radius:3px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--teal),var(--teal-dark));transition:width .6s ease}
+
+/* FOTO */
+.foto-box{border:1.5px dashed rgba(0,180,182,0.25);border-radius:var(--radius-sm);min-height:100px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:rgba(0,180,182,0.03)}
+.foto-box img{width:100%;max-height:180px;object-fit:cover}
+.foto-placeholder{text-align:center;color:var(--gray-mid);font-size:13px;padding:20px}
+.foto-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sec-label::before{content:'';width:16px;height:1px;background:var(--teal)}
+hr{border:none;border-top:1px solid var(--border-w);margin:16px 0}
+.empty{text-align:center;padding:48px 20px}
+.empty-icon{font-size:40px;opacity:.2;margin-bottom:12px}
+.empty-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--white);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--gray-mid)}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.check-item:last-child{border-bottom:none}
+.check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);margin-top:1px;flex-shrink:0;cursor:pointer}
+.check-item label{font-size:13px;color:var(--off);line-height:1.4;cursor:pointer}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(26,46,66,0.95);border:1px solid var(--border);color:var(--white);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;white-space:nowrap;backdrop-filter:blur(10px);opacity:0;transition:opacity .2s}
+.kpi-card{background:var(--navy-card);border:1px solid var(--border-w);border-radius:var(--radius);padding:16px;margin-bottom:10px}
+.kpi-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ntag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.07em;padding:3px 8px;border-radius:3px;margin:2px;background:rgba(0,180,182,0.07);border:1px solid rgba(0,180,182,0.18);color:var(--teal)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Conectando...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-logo-mark">V</div>
+      <h1>DESVÍOAPP</h1>
+      <p>VADOCA · Sistema de Gestión de Calidad</p>
+    </div>
+    <div class="login-box">
+      <div class="form-group">
+        <label class="login-field-label">Usuario</label>
+        <select class="login-select" id="sel-user" onchange="onUserChange()">
+          <option value="">— Seleccionar usuario —</option>
+          <option value="operario">👷 Juan Pérez · Operario</option>
+          <option value="supervisor">🔍 Dra. Sandra Ruiz · Supervisora QA</option>
+          <option value="jefe">⚖️ Ing. Carlos Vega · Jefe de Calidad</option>
+          <option value="gc">🛡️ Lic. Pedro Domínguez · Garantía de Calidad</option>
+          <option value="director">📊 Lic. Marta Ibáñez · Directora General</option>
+        </select>
+      </div>
+      <div class="pin-section">
+        <label class="pin-label">PIN de acceso</label>
+        <div class="pin-dots">
+          <div class="pin-dot" id="pd0">○</div>
+          <div class="pin-dot" id="pd1">○</div>
+          <div class="pin-dot" id="pd2">○</div>
+          <div class="pin-dot" id="pd3">○</div>
+        </div>
+        <div class="keypad">
+          <button class="key" onclick="kp('1')">1</button>
+          <button class="key" onclick="kp('2')">2</button>
+          <button class="key" onclick="kp('3')">3</button>
+          <button class="key" onclick="kp('4')">4</button>
+          <button class="key" onclick="kp('5')">5</button>
+          <button class="key" onclick="kp('6')">6</button>
+          <button class="key" onclick="kp('7')">7</button>
+          <button class="key" onclick="kp('8')">8</button>
+          <button class="key" onclick="kp('9')">9</button>
+          <button class="key del" onclick="kpDel()">⌫</button>
+          <button class="key zero" onclick="kp('0')">0</button>
+          <button class="key" style="visibility:hidden"></button>
+        </div>
+      </div>
+      <button class="btn-login" id="btn-login" disabled onclick="doLogin()">Ingresar</button>
+      <div class="login-error" id="login-err"></div>
+      <div class="login-hint">operario·1234 | supervisora·2345 | jefe·3456<br>GC·4567 | directora·5678</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app" class="screen">
+  <div class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-mark">V</div>
+      <div>
+        <div class="hdr-app">DesvíoApp</div>
+        <div class="hdr-user" id="hdr-user">—</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
+      <span class="role-chip" id="hdr-role">—</span>
+      <button class="btn-out" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="tabs" id="app-tabs"></div>
+  <div class="app-content" id="app-body"></div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal-overlay" id="modal-det">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modal-det-body"></div>
+    <button class="btn btn-ghost btn-full" onclick="closeModal('modal-det')" style="margin-top:8px">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL NUEVO -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modal-nuevo-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIGURACIÓN — cambiá esta URL después del deploy
+// ══════════════════════════════════════════════════════
+const API_URL = 'https://desvioapp-api-production.up.railway.app';
+// Ejemplo: const API_URL = 'https://desvioapp-api.up.railway.app';
+
+// ══════════════════════════════════════════════════════
+// USUARIOS
+// ══════════════════════════════════════════════════════
+const USERS = {
+  operario:   { name:'Juan Pérez',          role:'Operario',            pin:'1234', chip:'Operario' },
+  supervisor: { name:'Dra. Sandra Ruiz',     role:'Supervisora de QA',   pin:'2345', chip:'Supervisora QA' },
+  jefe:       { name:'Ing. Carlos Vega',     role:'Jefe de Calidad',     pin:'3456', chip:'Jefe Calidad' },
+  gc:         { name:'Lic. Pedro Domínguez', role:'Garantía de Calidad', pin:'4567', chip:'GC' },
+  director:   { name:'Lic. Marta Ibáñez',   role:'Directora General',   pin:'5678', chip:'Dirección', gold:true }
+};
+
+const TIPOS = ['Contaminación','Falla de equipamiento','Error de proceso','Materia prima OOS','Desvío de temperatura','Incidente de higiene','Falla de documentación','Otro'];
+const AREAS = ['Producción A','Producción B','Control de Calidad','Almacén','Envasado','Mantenimiento','Laboratorio'];
+const NORMAS = ['GMP','HACCP','ISO 9001','GMP + HACCP','GMP + ISO 9001','GMP + HACCP + ISO 9001','ANMAT','SENASA'];
+const ESTADO_MAP = {
+  pendiente_supervisor:{label:'Pend. Supervisor',cls:'b-ps'},
+  pendiente_jefe:{label:'Pend. Jefe',cls:'b-pj'},
+  pendiente_gc:{label:'Pend. GC',cls:'b-pgc'},
+  cerrado:{label:'Cerrado',cls:'b-cerrado'},
+  rechazado:{label:'Rechazado',cls:'b-rechazado'}
+};
+const SEV_MAP = {'Crítico':'sev-critico','Mayor':'sev-mayor','Menor':'sev-menor'};
+
+// ══════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════
+let currentUser = null;
+let pinBuf = '';
+let currentTab = 0;
+let DB = [];
+let newD = {};
+let newStep = 1;
+let recognition = null;
+let isRecording = false;
+let autoRefreshTimer = null;
+
+// ══════════════════════════════════════════════════════
+// API CALLS
+// ══════════════════════════════════════════════════════
+async function apiGet(path) {
+  const r = await fetch(API_URL + path);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function apiPost(path, data) {
+  const r = await fetch(API_URL + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function apiPatch(path, data) {
+  const r = await fetch(API_URL + path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function setSyncDot(ok) {
+  const d = document.getElementById('sync-dot');
+  if (d) { d.className = 'sync-dot' + (ok ? '' : ' off'); d.title = ok ? 'Sincronizado' : 'Sin conexión'; }
+}
+
+async function loadDesvios() {
+  try {
+    DB = await apiGet('/api/desvios');
+    // Normalizar historial (viene como objeto JSON de Postgres)
+    DB.forEach(d => {
+      if (typeof d.historial === 'string') d.historial = JSON.parse(d.historial);
+      if (!Array.isArray(d.historial)) d.historial = [];
+      if (!Array.isArray(d.normas_jefe)) d.normas_jefe = d.normas_jefe || [];
+      if (!Array.isArray(d.checklist_gc)) d.checklist_gc = d.checklist_gc || [];
+    });
+    setSyncDot(true);
+    return true;
+  } catch(e) {
+    console.error('Error cargando desvíos:', e);
+    setSyncDot(false);
+    return false;
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(async () => {
+    const ok = await loadDesvios();
+    if (ok && currentUser) renderBody();
+  }, 15000); // refresca cada 15 segundos
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+}
+
+// ══════════════════════════════════════════════════════
+// INICIO — verificar conexión con la API
+// ══════════════════════════════════════════════════════
+async function init() {
+  showLoading('Conectando con VADOCA...');
+  try {
+    await fetch(API_URL + '/health');
+    hideLoading();
+    document.getElementById('screen-login').classList.add('active');
+  } catch(e) {
+    document.getElementById('loading-text').textContent = 'Error de conexión. Verificá la URL de la API.';
+    console.error('API no disponible:', e);
+  }
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-text').textContent = msg || 'Cargando...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+function onUserChange() { pinBuf=''; updateDots(); document.getElementById('login-err').textContent=''; updateLoginBtn(); }
+function kp(d) { if(pinBuf.length>=4)return; pinBuf+=d; updateDots(); if(pinBuf.length===4)updateLoginBtn(); }
+function kpDel() { pinBuf=pinBuf.slice(0,-1); updateDots(); updateLoginBtn(); }
+function updateDots() {
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('pd'+i);
+    if(i<pinBuf.length){el.textContent='●';el.classList.add('filled');}
+    else{el.textContent='○';el.classList.remove('filled');}
+  }
+}
+function updateLoginBtn() {
+  const u=document.getElementById('sel-user').value;
+  document.getElementById('btn-login').disabled=!(u&&pinBuf.length===4);
+}
+
+async function doLogin() {
+  const uid=document.getElementById('sel-user').value;
+  const u=USERS[uid];
+  if(!u)return;
+  if(pinBuf!==u.pin){ document.getElementById('login-err').textContent='PIN incorrecto.'; pinBuf=''; updateDots(); updateLoginBtn(); return; }
+
+  showLoading('Cargando desvíos...');
+  const ok = await loadDesvios();
+  hideLoading();
+
+  if (!ok) {
+    document.getElementById('login-err').textContent = 'No se pudo conectar con el servidor. Verificá la conexión.';
+    return;
+  }
+
+  currentUser={...u,uid};
+  document.getElementById('hdr-user').textContent=u.name;
+  const rc=document.getElementById('hdr-role');
+  rc.textContent=u.chip; rc.className='role-chip'+(u.gold?' gold':'');
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  currentTab=0; renderTabs(); renderBody();
+  startAutoRefresh();
+}
+
+function doLogout() {
+  stopAutoRefresh();
+  currentUser=null; pinBuf=''; updateDots();
+  document.getElementById('sel-user').value='';
+  document.getElementById('login-err').textContent='';
+  updateLoginBtn();
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+// TABS Y RENDERING
+// ══════════════════════════════════════════════════════
+function getTabs() {
+  const uid=currentUser.uid;
+  if(uid==='operario')   return ['Mis Desvíos','Nuevo Desvío'];
+  if(uid==='supervisor') return ['Para Revisar','Todos','Dashboard'];
+  if(uid==='jefe')       return ['Para Aprobar','Todos','Dashboard'];
+  if(uid==='gc')         return ['Para Cerrar','Todos','Dashboard'];
+  if(uid==='director')   return ['Dashboard Ejecutivo','Todos los Desvíos'];
+}
+function renderTabs() {
+  const tabs=getTabs();
+  document.getElementById('app-tabs').innerHTML=tabs.map((t,i)=>
+    `<div class="tab ${i===currentTab?'active':''}" onclick="selTab(${i})">${t}</div>`
+  ).join('');
+}
+function selTab(i){currentTab=i;renderTabs();renderBody();}
+function renderBody() {
+  const uid=currentUser.uid; const tab=getTabs()[currentTab];
+  const el=document.getElementById('app-body');
+  if(uid==='operario'){
+    if(tab==='Mis Desvíos') el.innerHTML=listaOperario();
+    if(tab==='Nuevo Desvío'){el.innerHTML='';abrirNuevo();}
+  } else if(uid==='supervisor'){
+    if(tab==='Para Revisar') el.innerHTML=listaFiltrada(['pendiente_supervisor']);
+    if(tab==='Todos')        el.innerHTML=listaTodos();
+    if(tab==='Dashboard')    el.innerHTML=dashboard();
+  } else if(uid==='jefe'){
+    if(tab==='Para Aprobar') el.innerHTML=listaFiltrada(['pendiente_jefe']);
+    if(tab==='Todos')        el.innerHTML=listaTodos();
+    if(tab==='Dashboard')    el.innerHTML=dashboard();
+  } else if(uid==='gc'){
+    if(tab==='Para Cerrar') el.innerHTML=listaFiltrada(['pendiente_gc']);
+    if(tab==='Todos')       el.innerHTML=listaTodos();
+    if(tab==='Dashboard')   el.innerHTML=dashboard();
+  } else if(uid==='director'){
+    if(tab==='Dashboard Ejecutivo') el.innerHTML=dashboardDirector();
+    if(tab==='Todos los Desvíos')   el.innerHTML=listaTodos();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// LISTAS
+// ══════════════════════════════════════════════════════
+function badgeEstado(e){const m=ESTADO_MAP[e]||{label:e,cls:'b-ps'};return `<span class="badge ${m.cls}">${m.label}</span>`;}
+function badgeSev(s){return `<span class="badge ${SEV_MAP[s]||''}">${s}</span>`;}
+function itemHtml(d){
+  return `<div class="desvio-item" onclick="openDetalle('${d.id}')">
+    <div class="di-head">
+      <div>
+        <div class="di-id">${d.id}</div>
+        <div class="di-desc">${(d.descripcion||'').substring(0,85)}${(d.descripcion||'').length>85?'…':''}</div>
+      </div>
+      <div style="flex-shrink:0;margin-left:8px">${badgeEstado(d.estado)}</div>
+    </div>
+    <div class="di-meta">
+      <span class="di-tag">📋 ${d.tipo}</span>
+      <span class="di-tag">${badgeSev(d.severidad)}</span>
+      <span class="di-tag">📍 ${d.area}</span>
+      <span class="di-tag">🕐 ${(d.fecha_creacion||'').substring(0,10)}</span>
+    </div>
+  </div>`;
+}
+function listaOperario(){
+  const mios=DB.filter(d=>d.operario===currentUser.name);
+  if(!mios.length) return emptyHtml('Sin desvíos','Aún no reportaste ningún desvío.');
+  return `<div class="sec-label">Mis reportes (${mios.length})</div>`+mios.map(itemHtml).join('');
+}
+function listaFiltrada(estados){
+  const lista=DB.filter(d=>estados.includes(d.estado));
+  if(!lista.length) return emptyHtml('Sin pendientes','No hay desvíos en este estado.');
+  return `<div class="sec-label">${lista.length} desvío${lista.length!==1?'s':''}</div>`+lista.map(itemHtml).join('');
+}
+function listaTodos(){
+  if(!DB.length) return emptyHtml('Sin desvíos','No hay desvíos registrados.');
+  return `<div class="sec-label">Todos los desvíos (${DB.length})</div>`+DB.map(itemHtml).join('');
+}
+function emptyHtml(t,s){return `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">${t}</div><div class="empty-sub">${s}</div></div>`;}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════
+function dashboard(){
+  const total=DB.length;
+  const abiertos=DB.filter(d=>!['cerrado','rechazado'].includes(d.estado)).length;
+  const criticos=DB.filter(d=>d.severidad==='Crítico').length;
+  const cerrados=DB.filter(d=>d.estado==='cerrado').length;
+  const porEstado={};
+  DB.forEach(d=>{porEstado[d.estado]=(porEstado[d.estado]||0)+1;});
+  const barras=Object.entries(porEstado).map(([e,c])=>`
+    <div class="bar-item">
+      <div class="bar-head"><span class="bar-label">${ESTADO_MAP[e]?.label||e}</span><span class="bar-val">${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${total>0?Math.round(c/total*100):0}%"></div></div>
+    </div>`).join('');
+  const porTipo={};
+  DB.forEach(d=>{porTipo[d.tipo]=(porTipo[d.tipo]||0)+1;});
+  const tipoBarras=Object.entries(porTipo).map(([t,c])=>`
+    <div class="bar-item">
+      <div class="bar-head"><span class="bar-label" style="font-size:11px">${t}</span><span class="bar-val">${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%;background:linear-gradient(90deg,var(--gold),#b88a2a)"></div></div>
+    </div>`).join('');
+  return `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card red"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos</div></div>
+      <div class="stat-card gold"><div class="stat-num">${abiertos}</div><div class="stat-lbl">Abiertos</div></div>
+      <div class="stat-card green"><div class="stat-num">${cerrados}</div><div class="stat-lbl">Cerrados</div></div>
+    </div>
+    <div class="kpi-card"><div class="kpi-title">📊 Por estado</div>${barras}</div>
+    <div class="kpi-card"><div class="kpi-title">🏷️ Por tipo</div>${tipoBarras}</div>`;
+}
+
+function dashboardDirector(){
+  const total=DB.length;
+  const abiertos=DB.filter(d=>!['cerrado','rechazado'].includes(d.estado)).length;
+  const criticos=DB.filter(d=>d.severidad==='Crítico').length;
+  const cerrados=DB.filter(d=>d.estado==='cerrado').length;
+  const rechazados=DB.filter(d=>d.estado==='rechazado').length;
+  const pctCierre=total>0?Math.round(cerrados/total*100):0;
+  const hoy=new Date();
+  const vencidas=DB.filter(d=>{if(!d.capa_fecha||d.estado==='cerrado')return false;return new Date(d.capa_fecha)<hoy;}).length;
+  const porArea={};
+  DB.forEach(d=>{porArea[d.area]=(porArea[d.area]||0)+1;});
+  const areaBarras=Object.entries(porArea).sort((a,b)=>b[1]-a[1]).map(([a,c])=>`
+    <div class="bar-item">
+      <div class="bar-head"><span class="bar-label" style="font-size:12px">${a}</span><span class="bar-val">${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%"></div></div>
+    </div>`).join('');
+  const porSev={'Crítico':0,'Mayor':0,'Menor':0};
+  DB.forEach(d=>{porSev[d.severidad]=(porSev[d.severidad]||0)+1;});
+  const sevBarras=Object.entries(porSev).map(([s,c])=>`
+    <div class="bar-item">
+      <div class="bar-head"><span class="bar-label">${s}</span><span class="bar-val">${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${total>0?Math.round(c/total*100):0}%;background:${s==='Crítico'?'var(--red)':s==='Mayor'?'var(--orange)':'var(--green)'}"></div></div>
+    </div>`).join('');
+  const porNorma={};
+  DB.filter(d=>d.normas_jefe&&d.normas_jefe.length).forEach(d=>{d.normas_jefe.forEach(n=>{porNorma[n]=(porNorma[n]||0)+1;});});
+  const normaChips=Object.entries(porNorma).map(([n,c])=>`<span class="ntag">${n} (${c})</span>`).join('');
+  return `
+    <div class="sec-label">KPIs del período</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card red"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos</div></div>
+      <div class="stat-card green"><div class="stat-num">${pctCierre}%</div><div class="stat-lbl">Tasa cierre</div></div>
+      <div class="stat-card ${vencidas>0?'red':'gold'}"><div class="stat-num">${vencidas}</div><div class="stat-lbl">CAPA vencidas</div></div>
+    </div>
+    ${criticos>0?`<div class="alert alert-danger">⚠️ <strong>${criticos} desvío${criticos!==1?'s':''} crítico${criticos!==1?'s':''}</strong> activo${criticos!==1?'s':''}.</div>`:''}
+    ${vencidas>0?`<div class="alert alert-warning">🗓️ <strong>${vencidas} CAPA vencida${vencidas!==1?'s':''}</strong>.</div>`:''}
+    <div class="kpi-card"><div class="kpi-title">⚠️ Por severidad</div>${sevBarras}</div>
+    <div class="kpi-card"><div class="kpi-title">📍 Por área</div>${areaBarras}</div>
+    ${normaChips?`<div class="kpi-card"><div class="kpi-title">📜 Normas aplicadas</div><div style="margin-top:4px">${normaChips}</div></div>`:''}
+    <div class="kpi-card">
+      <div class="kpi-title">👥 Actividad</div>
+      <div class="info-row"><span class="info-lbl">Abiertos</span><span class="info-val">${abiertos}</span></div>
+      <div class="info-row"><span class="info-lbl">Cerrados</span><span class="info-val">${cerrados}</span></div>
+      <div class="info-row"><span class="info-lbl">Rechazados</span><span class="info-val">${rechazados}</span></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// DETALLE
+// ══════════════════════════════════════════════════════
+function openDetalle(id){
+  const d=DB.find(x=>x.id===id); if(!d)return;
+  const uid=currentUser.uid;
+  let accionesHtml='';
+
+  if(uid==='supervisor'&&d.estado==='pendiente_supervisor'){
+    accionesHtml=`<hr>
+      <div class="sec-label">Acción del Supervisor de QA</div>
+      <div class="ia-box">
+        <div class="ia-header"><div class="ia-icon">IA</div><span class="ia-header-text">Análisis VADOCA</span></div>
+        <div class="ia-body"><strong>Causa raíz hipotética:</strong> ${d.causa_raiz_ia}<br><br><strong>Criticidad:</strong> ${d.criticidad_ia} &nbsp; <strong>Norma:</strong> ${d.norma_ia}</div>
+      </div>
+      <div class="form-group"><label class="form-label">Causa raíz (confirmá o modificá)</label>
+        <textarea class="form-textarea" id="sup-causa">${d.causa_raiz_sup||d.causa_raiz_ia}</textarea></div>
+      <div class="form-group"><label class="form-label">Criticidad</label>
+        <select class="form-select" id="sup-crit">
+          ${['Crítico','Mayor','Menor'].map(s=>`<option value="${s}" ${(d.criticidad_sup||d.criticidad_ia)===s?'selected':''}>${s}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Norma aplicable</label>
+        <select class="form-select" id="sup-norma">
+          ${NORMAS.map(n=>`<option value="${n}" ${(d.norma_sup||d.norma_ia)===n?'selected':''}>${n}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Acción correctiva inmediata</label>
+        <textarea class="form-textarea" id="sup-accion">${d.accion_inmediata||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Observaciones</label>
+        <textarea class="form-textarea" id="sup-obs">${d.obs_sup||''}</textarea></div>
+      <div class="alert alert-warning">Al enviar, el desvío pasará al Jefe de Calidad.</div>
+      <button class="btn btn-gold btn-full" onclick="supEnviar('${id}')">Enviar al Jefe →</button>`;
+  }
+
+  if(uid==='jefe'&&d.estado==='pendiente_jefe'){
+    accionesHtml=`<hr>
+      <div class="sec-label">Plan CAPA — Jefe de Calidad</div>
+      <div class="form-group"><label class="form-label">Causa raíz final</label>
+        <textarea class="form-textarea" id="jefe-causa">${d.causa_raiz_jefe||d.causa_raiz_sup}</textarea></div>
+      <div class="form-group"><label class="form-label">Acción Correctiva</label>
+        <textarea class="form-textarea" id="jefe-correctiva">${d.capa_correctiva||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Acción Preventiva</label>
+        <textarea class="form-textarea" id="jefe-preventiva">${d.capa_preventiva||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Responsable</label>
+        <input class="form-input" id="jefe-resp" value="${d.capa_responsable||''}"></div>
+      <div class="form-group"><label class="form-label">Fecha límite</label>
+        <input class="form-input" type="date" id="jefe-fecha" value="${d.capa_fecha||''}"></div>
+      <div class="form-group"><label class="form-label">Normas aplicadas</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+          ${['GMP','HACCP','ISO 9001','ANMAT','SENASA'].map(n=>`
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--off);cursor:pointer">
+              <input type="checkbox" id="norma-${n.replace(/\s/g,'-')}" value="${n}" ${(d.normas_jefe||[]).includes(n)?'checked':''} style="accent-color:var(--teal)"> ${n}
+            </label>`).join('')}
+        </div></div>
+      <div class="form-group"><label class="form-label">Observaciones del Jefe</label>
+        <textarea class="form-textarea" id="jefe-obs">${d.obs_jefe||''}</textarea></div>
+      <div class="alert alert-warning">Al aprobar, pasa a Garantía de Calidad para cierre formal.</div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="jefeAprobar('${id}')">✓ Aprobar CAPA</button>
+        <button class="btn btn-danger" onclick="jefeRechazar('${id}')">✗ Rechazar</button>
+      </div>`;
+  }
+
+  if(uid==='gc'&&d.estado==='pendiente_gc'){
+    if(d.operario===currentUser.name){
+      accionesHtml=`<div class="alert alert-danger">⛔ No podés cerrar un desvío que vos mismo/a reportaste. Principio de segregación GMP.</div>`;
+    } else {
+      const items=[
+        {key:'causa',label:'Causa raíz documentada y aceptable'},
+        {key:'capa',label:'Plan CAPA definido con responsable y fecha'},
+        {key:'norma',label:'Marco normativo correctamente aplicado'},
+        {key:'lotes',label:'Sin impacto no documentado en lotes liberados'},
+        {key:'docs',label:'Documentación completa y trazable'}
+      ];
+      accionesHtml=`<hr>
+        <div class="sec-label">Checklist de cierre — GC</div>
+        <div class="card" style="margin-bottom:12px">
+          ${items.map(i=>`<div class="check-item">
+            <input type="checkbox" id="gc-chk-${i.key}" ${(d.checklist_gc||[]).includes(i.key)?'checked':''}>
+            <label for="gc-chk-${i.key}">${i.label}</label>
+          </div>`).join('')}
+        </div>
+        <div class="form-group"><label class="form-label">Resolución de cierre *</label>
+          <textarea class="form-textarea" id="gc-obs">${d.obs_gc||''}</textarea></div>
+        <div class="form-group"><label class="form-label">Nro. registro GMP interno</label>
+          <input class="form-input" id="gc-reg" value="${d.nro_registro||''}" placeholder="REG-GC-2026-001"></div>
+        <div class="alert alert-warning">El cierre es definitivo e inmutable.</div>
+        <button class="btn btn-success btn-full" onclick="gcCerrar('${id}')">🛡️ Cerrar desvío formalmente</button>`;
+    }
+  }
+
+  const histHtml=(d.historial||[]).map((h,i)=>`
+    <div class="hist-item">
+      <div class="hist-line">
+        <div class="hist-dot"></div>
+        ${i<(d.historial.length-1)?'<div class="hist-connector"></div>':''}
+      </div>
+      <div class="hist-body">
+        <div class="hist-action">${h.accion}</div>
+        <div class="hist-meta">${h.usuario} · ${h.fecha}</div>
+        ${h.detalle?`<div class="hist-detail">${h.detalle}</div>`:''}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('modal-det-body').innerHTML=`
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.1em;margin-bottom:4px">${d.id} · ${d.fecha_creacion}</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;line-height:1.3;margin-bottom:10px">${(d.descripcion||'').substring(0,120)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${badgeEstado(d.estado)} ${badgeSev(d.severidad)}</div>
+    </div>
+    <div class="card">
+      <div class="info-row"><span class="info-lbl">Tipo</span><span class="info-val">${d.tipo}</span></div>
+      <div class="info-row"><span class="info-lbl">Área</span><span class="info-val">${d.area}</span></div>
+      <div class="info-row"><span class="info-lbl">Reportado por</span><span class="info-val">${d.operario}</span></div>
+      ${d.transcripcion?`<div class="info-row"><span class="info-lbl">Transcripción</span><span class="info-val" style="font-style:italic">"${d.transcripcion}"</span></div>`:''}
+      ${d.causa_raiz_sup?`<div class="info-row"><span class="info-lbl">Causa raíz</span><span class="info-val">${d.causa_raiz_sup}</span></div>`:''}
+      ${d.accion_inmediata?`<div class="info-row"><span class="info-lbl">Acción inmediata</span><span class="info-val">${d.accion_inmediata}</span></div>`:''}
+      ${d.capa_correctiva?`<div class="info-row"><span class="info-lbl">CAPA correctiva</span><span class="info-val">${d.capa_correctiva}</span></div>`:''}
+      ${d.capa_preventiva?`<div class="info-row"><span class="info-lbl">CAPA preventiva</span><span class="info-val">${d.capa_preventiva}</span></div>`:''}
+      ${d.capa_responsable?`<div class="info-row"><span class="info-lbl">Responsable</span><span class="info-val">${d.capa_responsable} · vence ${d.capa_fecha}</span></div>`:''}
+      ${d.normas_jefe&&d.normas_jefe.length?`<div class="info-row"><span class="info-lbl">Normas</span><span class="info-val">${d.normas_jefe.map(n=>`<span class="ntag">${n}</span>`).join('')}</span></div>`:''}
+      ${d.obs_jefe?`<div class="info-row"><span class="info-lbl">Obs. Jefe</span><span class="info-val">${d.obs_jefe}</span></div>`:''}
+      ${d.obs_gc?`<div class="info-row"><span class="info-lbl">Resolución GC</span><span class="info-val">${d.obs_gc}</span></div>`:''}
+      ${d.nro_registro?`<div class="info-row"><span class="info-lbl">Nro. Registro</span><span class="info-val" style="color:var(--teal);font-weight:700">${d.nro_registro}</span></div>`:''}
+    </div>
+    ${accionesHtml}
+    <div class="sec-label">Historial de trazabilidad</div>
+    <div class="card">${histHtml}</div>`;
+
+  document.getElementById('modal-det').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════
+// ACCIONES CON API
+// ══════════════════════════════════════════════════════
+async function supEnviar(id){
+  const d=DB.find(x=>x.id===id);
+  const causa=document.getElementById('sup-causa').value.trim();
+  if(!causa){toast('Ingresá la causa raíz.');return;}
+  const historial=[...d.historial,{accion:'Revisado por supervisora',usuario:`${currentUser.name} · ${currentUser.role}`,fecha:now(),detalle:`Causa raíz confirmada. Enviado al Jefe.`}];
+  showLoading('Guardando...');
+  try {
+    await apiPatch(`/api/desvios/${id}`,{
+      causa_raiz_sup:causa,
+      criticidad_sup:document.getElementById('sup-crit').value,
+      norma_sup:document.getElementById('sup-norma').value,
+      accion_inmediata:document.getElementById('sup-accion').value.trim(),
+      obs_sup:document.getElementById('sup-obs').value.trim(),
+      severidad:document.getElementById('sup-crit').value,
+      estado:'pendiente_jefe',
+      historial:JSON.stringify(historial)
+    });
+    await loadDesvios();
+    hideLoading(); closeModal('modal-det'); renderBody(); toast('Enviado al Jefe ✓');
+  } catch(e){ hideLoading(); toast('Error al guardar. Intentá de nuevo.'); }
+}
+
+async function jefeAprobar(id){
+  const d=DB.find(x=>x.id===id);
+  const causa=document.getElementById('jefe-causa').value.trim();
+  const correctiva=document.getElementById('jefe-correctiva').value.trim();
+  const preventiva=document.getElementById('jefe-preventiva').value.trim();
+  if(!causa||!correctiva||!preventiva){toast('Completá causa raíz y plan CAPA.');return;}
+  const normas=['GMP','HACCP','ISO 9001','ANMAT','SENASA'].filter(n=>document.getElementById('norma-'+n.replace(/\s/g,'-'))?.checked);
+  const historial=[...d.historial,{accion:'CAPA aprobado por Jefe',usuario:`${currentUser.name} · ${currentUser.role}`,fecha:now(),detalle:`Normas: ${normas.join(', ')||'—'}. Enviado a GC.`}];
+  showLoading('Guardando...');
+  try {
+    await apiPatch(`/api/desvios/${id}`,{
+      causa_raiz_jefe:causa,
+      capa_correctiva:correctiva,
+      capa_preventiva:preventiva,
+      capa_responsable:document.getElementById('jefe-resp').value.trim(),
+      capa_fecha:document.getElementById('jefe-fecha').value,
+      normas_jefe:normas,
+      obs_jefe:document.getElementById('jefe-obs').value.trim(),
+      estado:'pendiente_gc',
+      historial:JSON.stringify(historial)
+    });
+    await loadDesvios();
+    hideLoading(); closeModal('modal-det'); renderBody(); toast('CAPA aprobado. Enviado a GC ✓');
+  } catch(e){ hideLoading(); toast('Error al guardar.'); }
+}
+
+async function jefeRechazar(id){
+  const d=DB.find(x=>x.id===id);
+  const obs=document.getElementById('jefe-obs').value.trim();
+  const historial=[...d.historial,{accion:'Rechazado por Jefe',usuario:`${currentUser.name} · ${currentUser.role}`,fecha:now(),detalle:obs||'Requiere revisión.'}];
+  showLoading('Guardando...');
+  try {
+    await apiPatch(`/api/desvios/${id}`,{obs_jefe:obs,estado:'pendiente_supervisor',historial:JSON.stringify(historial)});
+    await loadDesvios();
+    hideLoading(); closeModal('modal-det'); renderBody(); toast('Desvío rechazado.');
+  } catch(e){ hideLoading(); toast('Error al guardar.'); }
+}
+
+async function gcCerrar(id){
+  const d=DB.find(x=>x.id===id);
+  const obs=document.getElementById('gc-obs').value.trim();
+  if(!obs){toast('Ingresá la resolución de cierre.');return;}
+  const chkKeys=['causa','capa','norma','lotes','docs'];
+  const marcados=chkKeys.filter(k=>document.getElementById('gc-chk-'+k)?.checked);
+  if(marcados.length<5){toast('Completá todos los puntos del checklist.');return;}
+  const reg=document.getElementById('gc-reg').value.trim();
+  const historial=[...d.historial,{accion:'Cierre formal por GC',usuario:`${currentUser.name} · ${currentUser.role}`,fecha:now(),detalle:`Checklist completo.${reg?' Nro: '+reg:''}`}];
+  showLoading('Cerrando desvío...');
+  try {
+    await apiPatch(`/api/desvios/${id}`,{
+      checklist_gc:marcados,
+      obs_gc:obs,
+      nro_registro:reg,
+      estado:'cerrado',
+      historial:JSON.stringify(historial)
+    });
+    await loadDesvios();
+    hideLoading(); closeModal('modal-det'); renderBody(); toast('Desvío cerrado formalmente 🛡️');
+  } catch(e){ hideLoading(); toast('Error al guardar.'); }
+}
+
+// ══════════════════════════════════════════════════════
+// NUEVO DESVÍO
+// ══════════════════════════════════════════════════════
+function abrirNuevo(){newD={};newStep=1;renderNuevoStep();document.getElementById('modal-nuevo').classList.add('open');}
+
+function renderNuevoStep(){
+  const el=document.getElementById('modal-nuevo-body');
+  const bar=[1,2,3].map(i=>`<div class="paso-seg ${i<newStep?'done':i===newStep?'active':''}"></div>`).join('');
+  const indicator=`<div class="paso-bar">${bar}</div>`;
+
+  if(newStep===1){
+    el.innerHTML=`${indicator}
+      <div class="modal-title">Nuevo Desvío — Paso 1/3</div>
+      <div class="alert alert-info">Clasificá el desvío y describilo en detalle.</div>
+      <div class="form-group"><label class="form-label">Tipo *</label>
+        <select class="form-select" id="nd-tipo">
+          <option value="">— Seleccionar —</option>
+          ${TIPOS.map(t=>`<option value="${t}" ${newD.tipo===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Área *</label>
+        <select class="form-select" id="nd-area">
+          <option value="">— Seleccionar —</option>
+          ${AREAS.map(a=>`<option value="${a}" ${newD.area===a?'selected':''}>${a}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Descripción por audio</label>
+        <div class="audio-box">
+          <button class="audio-btn" id="audio-btn" onclick="toggleAudio()">
+            <div class="audio-dot"></div>
+            <span id="audio-btn-txt">Grabar descripción</span>
+          </button>
+          <div class="audio-transcript ${newD.transcripcion?'':'empty'}" id="audio-transcript">
+            ${newD.transcripcion||'La transcripción aparecerá aquí mientras hablás...'}
+          </div>
+        </div></div>
+      <div class="form-group"><label class="form-label">Descripción escrita</label>
+        <textarea class="form-textarea" id="nd-desc" placeholder="Describí qué ocurrió, dónde, cuándo...">${newD.descripcion||''}</textarea></div>
+      <div class="form-group"><label class="form-label">Foto (opcional)</label>
+        <div class="foto-box" id="foto-box">
+          ${newD.fotoUrl?`<img src="${newD.fotoUrl}">`:'<div class="foto-placeholder">📷 Tocá para agregar foto</div>'}
+          <input type="file" accept="image/*" capture="environment" onchange="handleFoto(this)">
+        </div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="cancelarNuevo()">Cancelar</button>
+        <button class="btn btn-primary" onclick="paso1Next()">Continuar →</button>
+      </div>`;
+  } else if(newStep===2){
+    const ia=analizarIA(newD.tipo,newD.descripcion);
+    newD.causa_raiz_ia=ia.causa; newD.criticidad_ia=ia.criticidad; newD.norma_ia=ia.norma;
+    el.innerHTML=`${indicator}
+      <div class="modal-title">Paso 2/3 — Análisis VADOCA</div>
+      <div class="ia-box">
+        <div class="ia-header"><div class="ia-icon">IA</div><span class="ia-header-text">Sistema VADOCA</span></div>
+        <div class="ia-body">
+          <strong>Tipo:</strong> ${newD.tipo}<br>
+          <strong>Área:</strong> ${newD.area}<br>
+          <strong>Transcripción:</strong> <em>"${(newD.transcripcion||newD.descripcion||'').substring(0,100)}..."</em><br><br>
+          <strong>Causa raíz hipotética:</strong><br>${ia.causa}<br><br>
+          <strong>Criticidad sugerida:</strong> ${ia.criticidad}<br>
+          <strong>Norma aplicable:</strong> ${ia.norma}
+        </div>
+      </div>
+      <div class="alert alert-warning">⚠️ Análisis <strong>preliminar e hipotético</strong>. El supervisor lo confirmará.</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="paso2Back()">← Corregir</button>
+        <button class="btn btn-primary" onclick="paso2Confirm()">Confirmar y enviar ✓</button>
+      </div>`;
+  } else if(newStep===3){
+    el.innerHTML=`
+      <div style="text-align:center;padding:28px 0">
+        <div style="font-size:52px;margin-bottom:14px">✅</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--white);margin-bottom:8px">Desvío registrado</div>
+        <div style="font-size:12px;color:var(--gray-mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">ID asignado</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--teal);margin-bottom:20px">${newD.id}</div>
+        <div class="alert alert-success">La Supervisora fue notificada. Desvío en el circuito formal.</div>
+        <button class="btn btn-primary btn-full" onclick="finalizarNuevo()">Ver mis desvíos</button>
+      </div>`;
+  }
+}
+
+function paso1Next(){
+  const tipo=document.getElementById('nd-tipo').value;
+  const area=document.getElementById('nd-area').value;
+  const desc=document.getElementById('nd-desc').value.trim();
+  const trans=newD.transcripcion||'';
+  if(!tipo||!area){toast('Seleccioná tipo y área.');return;}
+  if(!desc&&!trans){toast('Agregá una descripción.');return;}
+  newD={...newD,tipo,area,descripcion:desc||trans};
+  stopAudio(); newStep=2; renderNuevoStep();
+}
+function paso2Back(){newStep=1;renderNuevoStep();}
+
+async function paso2Confirm(){
+  showLoading('Registrando desvío...');
+  try {
+    const nextId=await apiGet('/api/next-id');
+    const id=nextId.id;
+    const fecha=now();
+    const historial=[
+      {accion:'Desvío reportado',usuario:`${currentUser.name} · ${currentUser.role}`,fecha,detalle:'Reporte por audio y descripción.'},
+      {accion:'Análisis IA generado',usuario:'Sistema VADOCA',fecha,detalle:`Criticidad: ${newD.criticidad_ia}. Norma: ${newD.norma_ia}.`}
+    ];
+    await apiPost('/api/desvios',{
+      id,tipo:newD.tipo,area:newD.area,
+      severidad:newD.criticidad_ia||'Menor',
+      descripcion:newD.descripcion,
+      transcripcion:newD.transcripcion||'',
+      causa_raiz_ia:newD.causa_raiz_ia,
+      criticidad_ia:newD.criticidad_ia,
+      norma_ia:newD.norma_ia,
+      operario:currentUser.name,
+      fecha_creacion:fecha,
+      foto_url:newD.fotoUrl||null,
+      historial
+    });
+    await loadDesvios();
+    newD.id=id; newD.fechaCreacion=fecha;
+    hideLoading(); newStep=3; renderNuevoStep();
+  } catch(e){ hideLoading(); toast('Error al guardar. Intentá de nuevo.'); console.error(e); }
+}
+
+function finalizarNuevo(){closeModal('modal-nuevo');currentTab=0;renderTabs();renderBody();}
+function cancelarNuevo(){stopAudio();closeModal('modal-nuevo');currentTab=0;renderTabs();renderBody();}
+function handleFoto(input){
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    newD.fotoUrl=e.target.result;
+    const b=document.getElementById('foto-box');
+    if(b)b.innerHTML=`<img src="${e.target.result}"><input type="file" accept="image/*" capture="environment" onchange="handleFoto(this)">`;
+  };
+  r.readAsDataURL(f);
+}
+
+// ══════════════════════════════════════════════════════
+// AUDIO
+// ══════════════════════════════════════════════════════
+function toggleAudio(){
+  if(isRecording){stopAudio();return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Tu browser no soporta grabación. Escribí en el campo de texto.');return;}
+  recognition=new SR();recognition.lang='es-AR';recognition.continuous=true;recognition.interimResults=true;
+  let finalTranscript=newD.transcripcion||'';
+  recognition.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript+' ';
+      else interim+=e.results[i][0].transcript;
+    }
+    newD.transcripcion=finalTranscript;
+    const el=document.getElementById('audio-transcript');
+    if(el){el.textContent=finalTranscript+interim;el.classList.remove('empty');}
+    const df=document.getElementById('nd-desc');
+    if(df&&!df.value)df.value=finalTranscript+interim;
+  };
+  recognition.onerror=()=>{stopAudio();};
+  recognition.onend=()=>{if(isRecording)recognition.start();};
+  recognition.start();isRecording=true;
+  const btn=document.getElementById('audio-btn');const txt=document.getElementById('audio-btn-txt');
+  if(btn)btn.classList.add('recording');if(txt)txt.textContent='Grabando... (tocá para detener)';
+}
+function stopAudio(){
+  if(recognition){try{recognition.stop();}catch(e){}recognition=null;}
+  isRecording=false;
+  const btn=document.getElementById('audio-btn');const txt=document.getElementById('audio-btn-txt');
+  if(btn)btn.classList.remove('recording');if(txt)txt.textContent='Grabar descripción';
+}
+
+// ══════════════════════════════════════════════════════
+// IA LOCAL
+// ══════════════════════════════════════════════════════
+function analizarIA(tipo,desc){
+  const d=(desc||'').toLowerCase();
+  let criticidad='Menor';
+  if(/contaminac|temperatura|oos|fuera de espec|lote|estéril|esteril|tóxico|recall|retiro/.test(d))criticidad='Crítico';
+  else if(/falla|error|incidente|equipamiento|calibrac|humedad|vencim/.test(d))criticidad='Mayor';
+  const causas={'Contaminación':'Posible falla en barreras de contaminación cruzada o incumplimiento de BPM. Hipótesis: falla de procedimiento o EPC inadecuado.','Falla de equipamiento':'Posible falla mecánica por falta de mantenimiento preventivo. Hipótesis: programa de mantenimiento preventivo incumplido.','Error de proceso':'Posible desviación del POE
