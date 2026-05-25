@@ -419,9 +419,12 @@ async function loadDesvios() {
 function startAutoRefresh() {
   stopAutoRefresh();
   autoRefreshTimer = setInterval(async () => {
+    // No refrescar si hay un modal abierto o el usuario está escribiendo
+    const modalAbierto = document.querySelector('.modal-overlay.open');
+    if (modalAbierto) return;
     const ok = await loadDesvios();
     if (ok && currentUser) renderBody();
-  }, 15000); // refresca cada 15 segundos
+  }, 20000); // refresca cada 20 segundos
 }
 
 function stopAutoRefresh() {
@@ -1014,8 +1017,14 @@ function toggleAudio(){
   if(isRecording){stopAudio();return;}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){toast('Tu browser no soporta grabación. Escribí en el campo de texto.');return;}
-  recognition=new SR();recognition.lang='es-AR';recognition.continuous=true;recognition.interimResults=true;
+  // Detectar Android para ajustar comportamiento
+  const isAndroid=/Android/i.test(navigator.userAgent);
+  recognition=new SR();
+  recognition.lang='es-AR';
+  recognition.continuous=!isAndroid; // Android no soporta bien continuous
+  recognition.interimResults=true;
   let finalTranscript=newD.transcripcion||'';
+  let restartTimer=null;
   recognition.onresult=e=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
@@ -1024,12 +1033,32 @@ function toggleAudio(){
     }
     newD.transcripcion=finalTranscript;
     const el=document.getElementById('audio-transcript');
-    if(el){el.textContent=finalTranscript+interim;el.classList.remove('empty');}
+    if(el){el.textContent=finalTranscript+(interim?' ['+interim+']':'');el.classList.remove('empty');}
     const df=document.getElementById('nd-desc');
-    if(df&&!df.value)df.value=finalTranscript+interim;
+    if(df&&!df.value)df.value=finalTranscript;
   };
-  recognition.onerror=()=>{stopAudio();};
-  recognition.onend=()=>{if(isRecording)recognition.start();};
+  recognition.onerror=e=>{
+    if(e.error==='no-speech'&&isRecording&&isAndroid){
+      // En Android, reiniciar suavemente si no hay voz
+      if(restartTimer)clearTimeout(restartTimer);
+      restartTimer=setTimeout(()=>{
+        if(isRecording){try{recognition.start();}catch(err){}}
+      },300);
+    } else {
+      stopAudio();
+    }
+  };
+  recognition.onend=()=>{
+    if(isRecording&&isAndroid){
+      // En Android reiniciar con delay para evitar loop
+      if(restartTimer)clearTimeout(restartTimer);
+      restartTimer=setTimeout(()=>{
+        if(isRecording){try{recognition.start();}catch(err){stopAudio();}}
+      },200);
+    } else if(isRecording&&!isAndroid){
+      try{recognition.start();}catch(err){stopAudio();}
+    }
+  };
   recognition.start();isRecording=true;
   const btn=document.getElementById('audio-btn');const txt=document.getElementById('audio-btn-txt');
   if(btn)btn.classList.add('recording');if(txt)txt.textContent='Grabando... (tocá para detener)';
@@ -1049,16 +1078,4 @@ function analizarIA(tipo,desc){
   let criticidad='Menor';
   if(/contaminac|temperatura|oos|fuera de espec|lote|estéril|esteril|tóxico|recall|retiro/.test(d))criticidad='Crítico';
   else if(/falla|error|incidente|equipamiento|calibrac|humedad|vencim/.test(d))criticidad='Mayor';
-  const causas={'Contaminación':'Posible falla en barreras de contaminación cruzada o incumplimiento de BPM. Hipótesis: falla de procedimiento o EPC inadecuado.','Falla de equipamiento':'Posible falla mecánica por falta de mantenimiento preventivo. Hipótesis: programa de mantenimiento preventivo incumplido.','Error de proceso':'Posible desviación del POE vigente. Hipótesis: error humano o POE desactualizado.','Materia prima OOS':'Posible falla en control de calidad del proveedor. Hipótesis: incumplimiento de especificaciones.','Desvío de temperatura':'Posible falla en sistema de refrigeración. Hipótesis: falla de equipamiento o error en monitoreo.','Incidente de higiene':'Posible incumplimiento de procedimientos de higiene (POE-HIG). Hipótesis: capacitación insuficiente.','Falla de documentación':'Posible error en gestión documental. Hipótesis: control de versiones inadecuado.','Otro':'Requiere investigación adicional. Hipótesis preliminar basada en descripción del operario.'};
-  const normas={'Desvío de temperatura':'GMP + HACCP','Materia prima OOS':'GMP + ISO 9001','Contaminación':'GMP + HACCP + ISO 9001','Incidente de higiene':'GMP + HACCP + ISO 9001','Falla de equipamiento':'GMP + ISO 9001','Error de proceso':'GMP + ISO 9001','Falla de documentación':'GMP + ISO 9001','Otro':'GMP'};
-  return{causa:causas[tipo]||causas['Otro'],criticidad,norma:normas[tipo]||'GMP'};
-}
-
-function now(){const d=new Date();const p=n=>n.toString().padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(()=>{t.style.opacity='1';});setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2400);}
-document.querySelectorAll('.modal-overlay').forEach(el=>{el.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);});});
-init();
-</script>
-</body>
-</html>
+  const causas={'Contaminación':'Posible falla en barreras de contaminación cruzada o incumplimiento de BPM. Hipótesis: falla de procedimiento o EPC inadecuado.','Falla de equipamiento':'Posible falla mecánica por falta de mantenimiento preventivo. Hipótesis: programa de mantenimiento preventivo incumplido.','Error de proceso':'Posible desviación del POE
