@@ -434,18 +434,7 @@ function stopAutoRefresh() {
 // ══════════════════════════════════════════════════════
 // INICIO — verificar conexión con la API
 // ══════════════════════════════════════════════════════
-async function init() {
-  showLoading('Conectando con VADOCA...');
-  // Timeout de 6 segundos — si la API no responde, igual mostramos el login
-  const timeout = new Promise(resolve => setTimeout(resolve, 6000));
-  try {
-    await Promise.race([
-      fetch(API_URL + '/health'),
-      timeout
-    ]);
-  } catch(e) {
-    console.warn('Health check falló, continuando igual:', e);
-  }
+function init() {
   hideLoading();
   document.getElementById('screen-login').classList.add('active');
 }
