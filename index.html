@@ -607,6 +607,9 @@ function listaTodos(){
     } else if(activeFilter.tipo==='norma') {
       lista = DB.filter(d=>d.normas_jefe&&d.normas_jefe.includes(activeFilter.valor));
       filterLabel = `Norma: ${activeFilter.valor}`;
+    } else if(activeFilter.tipo==='abiertos') {
+      lista = DB.filter(d=>!['cerrado','rechazado'].includes(d.estado));
+      filterLabel = 'Abiertos';
     }
   }
   const filterChip = activeFilter ? `
@@ -707,7 +710,7 @@ function dashboardDirector(){
     ${normaChips?`<div class="kpi-card"><div class="kpi-title">📜 Normas aplicadas</div><div style="margin-top:4px">${normaChips}</div></div>`:''}
     <div class="kpi-card">
       <div class="kpi-title">👥 Actividad</div>
-      <div class="info-row" onclick="clearFilter()" style="cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(0,180,182,0.05)'" onmouseleave="this.style.background=''"><span class="info-lbl">Abiertos ↗</span><span class="info-val">${abiertos}</span></div>
+      <div class="info-row" onclick="setFilter('abiertos','abiertos')" style="cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(0,180,182,0.05)'" onmouseleave="this.style.background=''"><span class="info-lbl">Abiertos ↗</span><span class="info-val">${abiertos}</span></div>
       <div class="info-row" onclick="setFilter('estado','cerrado')" style="cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(0,180,182,0.05)'" onmouseleave="this.style.background=''"><span class="info-lbl">Cerrados ↗</span><span class="info-val">${cerrados}</span></div>
       <div class="info-row" onclick="setFilter('estado','rechazado')" style="cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(0,180,182,0.05)'" onmouseleave="this.style.background=''"><span class="info-lbl">Rechazados ↗</span><span class="info-val">${rechazados}</span></div>
     </div>`;
