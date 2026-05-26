@@ -222,6 +222,14 @@ hr{border:none;border-top:1px solid var(--border-w);margin:16px 0}
 .kpi-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .ntag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.07em;padding:3px 8px;border-radius:3px;margin:2px;background:rgba(0,180,182,0.07);border:1px solid rgba(0,180,182,0.18);color:var(--teal)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.stat-card.clickable{cursor:pointer;transition:all .2s}
+.stat-card.clickable:active{transform:scale(0.97);border-color:rgba(0,180,182,0.4)}
+.stat-card.clickable:hover{border-color:rgba(0,180,182,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.bar-item.clickable{cursor:pointer;padding:4px 6px;border-radius:6px;margin:-4px -6px;transition:background .15s}
+.bar-item.clickable:active{background:rgba(0,180,182,0.08)}
+.filtro-chip{display:flex;align-items:center;gap:8px;background:rgba(0,180,182,0.1);border:1px solid rgba(0,180,182,0.3);border-radius:20px;padding:6px 12px;margin-bottom:12px;font-size:13px;color:var(--teal);font-weight:600}
+.filtro-chip-x{background:none;border:none;color:var(--teal);cursor:pointer;font-size:16px;line-height:1;padding:0;margin-left:4px;opacity:.7}
+.filtro-chip-x:active{opacity:1}
 </style>
 </head>
 <body>
@@ -362,6 +370,8 @@ let newStep = 1;
 let recognition = null;
 let isRecording = false;
 let autoRefreshTimer = null;
+let filtroActivo = null; // {campo: 'severidad'|'area'|'estado', valor: '...', label: '...'}
+let activeFilter = null; // { tipo: 'severidad'|'area'|'estado', valor: '...' }
 
 // ══════════════════════════════════════════════════════
 // API CALLS
@@ -517,7 +527,11 @@ function renderTabs() {
     `<div class="tab ${i===currentTab?'active':''}" onclick="selTab(${i})">${t}</div>`
   ).join('');
 }
-function selTab(i){currentTab=i;renderTabs();renderBody();}
+function selTab(i){
+  // Limpiar filtro al cambiar de tab manualmente
+  if(i!==currentTab) filtroActivo=null;
+  currentTab=i;renderTabs();renderBody();
+}
 function renderBody() {
   const uid=currentUser.uid; const tab=getTabs()[currentTab];
   const el=document.getElementById('app-body');
@@ -575,8 +589,44 @@ function listaFiltrada(estados){
   return `<div class="sec-label">${lista.length} desvío${lista.length!==1?'s':''}</div>`+lista.map(itemHtml).join('');
 }
 function listaTodos(){
-  if(!DB.length) return emptyHtml('Sin desvíos','No hay desvíos registrados.');
-  return `<div class="sec-label">Todos los desvíos (${DB.length})</div>`+DB.map(itemHtml).join('');
+  let lista = DB;
+  let filterLabel = '';
+  if(activeFilter) {
+    if(activeFilter.tipo==='severidad') {
+      lista = DB.filter(d=>d.severidad===activeFilter.valor);
+      filterLabel = `Severidad: ${activeFilter.valor}`;
+    } else if(activeFilter.tipo==='area') {
+      lista = DB.filter(d=>d.area===activeFilter.valor);
+      filterLabel = `Área: ${activeFilter.valor}`;
+    } else if(activeFilter.tipo==='estado') {
+      lista = DB.filter(d=>d.estado===activeFilter.valor);
+      filterLabel = `Estado: ${ESTADO_MAP[activeFilter.valor]?.label||activeFilter.valor}`;
+    } else if(activeFilter.tipo==='tipo') {
+      lista = DB.filter(d=>d.tipo===activeFilter.valor);
+      filterLabel = `Tipo: ${activeFilter.valor}`;
+    }
+  }
+  const filterChip = activeFilter ? `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:rgba(0,180,182,0.08);border:1px solid rgba(0,180,182,0.25);border-radius:var(--radius-sm)">
+      <span style="font-size:12px;color:var(--teal);font-weight:600">🔍 Filtrando: ${filterLabel}</span>
+      <button onclick="clearFilter()" style="margin-left:auto;background:rgba(0,180,182,0.15);border:1px solid rgba(0,180,182,0.3);color:var(--teal);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer">✕ Limpiar</button>
+    </div>` : '';
+  if(!lista.length) return filterChip + emptyHtml('Sin desvíos', activeFilter ? 'No hay desvíos con este filtro.' : 'No hay desvíos registrados.');
+  return filterChip + `<div class="sec-label">${lista.length} desvío${lista.length!==1?'s':''}</div>` + lista.map(itemHtml).join('');
+}
+
+function clearFilter() {
+  activeFilter = null;
+  renderBody();
+}
+
+function setFilter(tipo, valor) {
+  activeFilter = { tipo, valor };
+  // Ir a tab "Todos" según el rol
+  const tabs = getTabs();
+  const todosIdx = tabs.findIndex(t => t.includes('Todos'));
+  if(todosIdx >= 0) { currentTab = todosIdx; renderTabs(); }
+  renderBody();
 }
 function emptyHtml(t,s){return `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">${t}</div><div class="empty-sub">${s}</div></div>`;}
 
@@ -591,23 +641,23 @@ function dashboard(){
   const porEstado={};
   DB.forEach(d=>{porEstado[d.estado]=(porEstado[d.estado]||0)+1;});
   const barras=Object.entries(porEstado).map(([e,c])=>`
-    <div class="bar-item">
-      <div class="bar-head"><span class="bar-label">${ESTADO_MAP[e]?.label||e}</span><span class="bar-val">${c}</span></div>
+    <div class="bar-item" onclick="setFilter('estado','${e}')" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">
+      <div class="bar-head"><span class="bar-label">${ESTADO_MAP[e]?.label||e}</span><span class="bar-val">${c} →</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${total>0?Math.round(c/total*100):0}%"></div></div>
     </div>`).join('');
   const porTipo={};
   DB.forEach(d=>{porTipo[d.tipo]=(porTipo[d.tipo]||0)+1;});
   const tipoBarras=Object.entries(porTipo).map(([t,c])=>`
-    <div class="bar-item">
-      <div class="bar-head"><span class="bar-label" style="font-size:11px">${t}</span><span class="bar-val">${c}</span></div>
+    <div class="bar-item" onclick="setFilter('tipo','${t}')" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">
+      <div class="bar-head"><span class="bar-label" style="font-size:11px">${t}</span><span class="bar-val">${c} →</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%;background:linear-gradient(90deg,var(--gold),#b88a2a)"></div></div>
     </div>`).join('');
   return `
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total</div></div>
-      <div class="stat-card red"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos</div></div>
-      <div class="stat-card gold"><div class="stat-num">${abiertos}</div><div class="stat-lbl">Abiertos</div></div>
-      <div class="stat-card green"><div class="stat-num">${cerrados}</div><div class="stat-lbl">Cerrados</div></div>
+      <div class="stat-card" onclick="clearFilter()" style="cursor:pointer"><div class="stat-num">${total}</div><div class="stat-lbl">Total ↗</div></div>
+      <div class="stat-card red" onclick="setFilter('severidad','Crítico')" style="cursor:pointer"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos ↗</div></div>
+      <div class="stat-card gold" onclick="clearFilter()" style="cursor:pointer"><div class="stat-num">${abiertos}</div><div class="stat-lbl">Abiertos ↗</div></div>
+      <div class="stat-card green" onclick="setFilter('estado','cerrado')" style="cursor:pointer"><div class="stat-num">${cerrados}</div><div class="stat-lbl">Cerrados ↗</div></div>
     </div>
     <div class="kpi-card"><div class="kpi-title">📊 Por estado</div>${barras}</div>
     <div class="kpi-card"><div class="kpi-title">🏷️ Por tipo</div>${tipoBarras}</div>`;
@@ -625,15 +675,15 @@ function dashboardDirector(){
   const porArea={};
   DB.forEach(d=>{porArea[d.area]=(porArea[d.area]||0)+1;});
   const areaBarras=Object.entries(porArea).sort((a,b)=>b[1]-a[1]).map(([a,c])=>`
-    <div class="bar-item">
-      <div class="bar-head"><span class="bar-label" style="font-size:12px">${a}</span><span class="bar-val">${c}</span></div>
+    <div class="bar-item" onclick="setFilter('area','${a}')" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">
+      <div class="bar-head"><span class="bar-label" style="font-size:12px">${a}</span><span class="bar-val">${c} →</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%"></div></div>
     </div>`).join('');
   const porSev={'Crítico':0,'Mayor':0,'Menor':0};
   DB.forEach(d=>{porSev[d.severidad]=(porSev[d.severidad]||0)+1;});
   const sevBarras=Object.entries(porSev).map(([s,c])=>`
-    <div class="bar-item">
-      <div class="bar-head"><span class="bar-label">${s}</span><span class="bar-val">${c}</span></div>
+    <div class="bar-item" onclick="setFilter('severidad','${s}')" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">
+      <div class="bar-head"><span class="bar-label">${s}</span><span class="bar-val" style="color:${s==='Crítico'?'var(--red)':s==='Mayor'?'var(--orange)':'var(--green)'}">${c} →</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${total>0?Math.round(c/total*100):0}%;background:${s==='Crítico'?'var(--red)':s==='Mayor'?'var(--orange)':'var(--green)'}"></div></div>
     </div>`).join('');
   const porNorma={};
@@ -642,9 +692,9 @@ function dashboardDirector(){
   return `
     <div class="sec-label">KPIs del período</div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total</div></div>
-      <div class="stat-card red"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos</div></div>
-      <div class="stat-card green"><div class="stat-num">${pctCierre}%</div><div class="stat-lbl">Tasa cierre</div></div>
+      <div class="stat-card" onclick="setFilter(null,null);clearFilter()" style="cursor:pointer"><div class="stat-num">${total}</div><div class="stat-lbl">Total ↗</div></div>
+      <div class="stat-card red" onclick="setFilter('severidad','Crítico')" style="cursor:pointer"><div class="stat-num">${criticos}</div><div class="stat-lbl">Críticos ↗</div></div>
+      <div class="stat-card green" onclick="setFilter('estado','cerrado')" style="cursor:pointer"><div class="stat-num">${pctCierre}%</div><div class="stat-lbl">Tasa cierre ↗</div></div>
       <div class="stat-card ${vencidas>0?'red':'gold'}"><div class="stat-num">${vencidas}</div><div class="stat-lbl">CAPA vencidas</div></div>
     </div>
     ${criticos>0?`<div class="alert alert-danger">⚠️ <strong>${criticos} desvío${criticos!==1?'s':''} crítico${criticos!==1?'s':''}</strong> activo${criticos!==1?'s':''}.</div>`:''}
