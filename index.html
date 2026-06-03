@@ -250,18 +250,18 @@ hr{border:none;border-top:1px solid var(--border-w);margin:16px 0}
       <p>VADOCA · Sistema de Gestión de Calidad</p>
     </div>
     <div class="login-box">
-      <div class="form-group">
-        <label class="login-field-label">Usuario</label>
-        <select class="login-select" id="sel-user" onchange="onUserChange()">
-          <option value="">— Seleccionar usuario —</option>
-          <option value="operario">👷 Juan Pérez · Operario</option>
-          <option value="supervisor">🔍 Dra. Sandra Ruiz · Supervisora QA</option>
-          <option value="jefe">⚖️ Ing. Carlos Vega · Jefe de Calidad</option>
-          <option value="gc">🛡️ Lic. Pedro Domínguez · Garantía de Calidad</option>
-          <option value="director">📊 Lic. Marta Ibáñez · Directora General</option>
-        </select>
+      <div class="form-group" id="login-step-email">
+        <label class="login-field-label">Email corporativo</label>
+        <input class="form-input" id="login-email" type="email" placeholder="usuario@empresa.com"
+          style="background:rgba(13,28,46,0.8);border:1px solid var(--border-w);color:var(--white);font-size:15px;padding:13px 14px;border-radius:var(--radius-sm);width:100%"
+          onkeydown="if(event.key==='Enter')goToPin()">
+        <button class="btn-login" style="margin-top:12px" onclick="goToPin()">Continuar →</button>
       </div>
-      <div class="pin-section">
+      <div class="form-group" id="login-step-pin" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <button onclick="backToEmail()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:18px">←</button>
+          <span style="font-size:13px;color:var(--off)" id="login-email-display">—</span>
+        </div>
         <label class="pin-label">PIN de acceso</label>
         <div class="pin-dots">
           <div class="pin-dot" id="pd0">○</div>
@@ -283,12 +283,34 @@ hr{border:none;border-top:1px solid var(--border-w);margin:16px 0}
           <button class="key zero" onclick="kp('0')">0</button>
           <button class="key" style="visibility:hidden"></button>
         </div>
+        <button class="btn-login" id="btn-login" disabled onclick="doLogin()">Ingresar</button>
       </div>
-      <button class="btn-login" id="btn-login" disabled onclick="doLogin()">Ingresar</button>
       <div class="login-error" id="login-err"></div>
-      <div class="login-hint">operario·1234 | supervisora·2345 | jefe·3456<br>GC·4567 | directora·5678</div>
     </div>
   </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="screen-admin" class="screen">
+  <div class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-mark">V</div>
+      <div>
+        <div class="hdr-app">Admin · VADOCA</div>
+        <div class="hdr-user" id="admin-user-name">—</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span class="role-chip" style="background:var(--gold-dim);border-color:rgba(212,168,67,0.3);color:var(--gold)">Superusuario</span>
+      <button class="btn-out" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="adminTab('usuarios')" id="atab-usuarios">Usuarios</div>
+    <div class="tab" onclick="adminTab('delegaciones')" id="atab-delegaciones">Delegaciones</div>
+    <div class="tab" onclick="adminTab('audit')" id="atab-audit">Audit Trail</div>
+  </div>
+  <div class="app-content" id="admin-content"></div>
 </div>
 
 <!-- APP -->
@@ -338,12 +360,10 @@ const API_URL = 'https://desvioapp-api-production.up.railway.app';
 // ══════════════════════════════════════════════════════
 // USUARIOS
 // ══════════════════════════════════════════════════════
-const USERS = {
-  operario:   { name:'Juan Pérez',          role:'Operario',            pin:'1234', chip:'Operario' },
-  supervisor: { name:'Dra. Sandra Ruiz',     role:'Supervisora de QA',   pin:'2345', chip:'Supervisora QA' },
-  jefe:       { name:'Ing. Carlos Vega',     role:'Jefe de Calidad',     pin:'3456', chip:'Jefe Calidad' },
-  gc:         { name:'Lic. Pedro Domínguez', role:'Garantía de Calidad', pin:'4567', chip:'GC' },
-  director:   { name:'Lic. Marta Ibáñez',   role:'Directora General',   pin:'5678', chip:'Dirección', gold:true }
+// Mapeo de roles a chips visuales
+const ROL_CHIP = {
+  operario:'Operario', supervisor:'Supervisora QA', jefe:'Jefe Calidad',
+  gc:'GC', director:'Dirección', superusuario:'Admin'
 };
 
 const TIPOS = ['Contaminación','Falla de equipamiento','Error de proceso','Materia prima OOS','Desvío de temperatura','Incidente de higiene','Falla de documentación','Otro'];
@@ -371,6 +391,7 @@ let recognition = null;
 let isRecording = false;
 let autoRefreshTimer = null;
 let filtroActivo = null; // {campo: 'severidad'|'area'|'estado', valor: '...', label: '...'}
+let misDelegaciones = []; // delegaciones activas donde soy el delegado
 let activeFilter = null; // { tipo: 'severidad'|'area'|'estado', valor: '...' }
 
 // ══════════════════════════════════════════════════════
@@ -433,6 +454,7 @@ function startAutoRefresh() {
     const modalAbierto = document.querySelector('.modal-overlay.open');
     if (modalAbierto) return;
     const ok = await loadDesvios();
+    if (ok) await loadDelegaciones();
     if (ok && currentUser) renderBody();
   }, 20000); // refresca cada 20 segundos
 }
@@ -458,9 +480,31 @@ function hideLoading() {
 }
 
 // ══════════════════════════════════════════════════════
-// LOGIN
+// LOGIN POR EMAIL
 // ══════════════════════════════════════════════════════
-function onUserChange() { pinBuf=''; updateDots(); document.getElementById('login-err').textContent=''; updateLoginBtn(); }
+let loginEmail = '';
+
+function goToPin() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('login-err').textContent = 'Ingresá un email válido.';
+    return;
+  }
+  loginEmail = email;
+  document.getElementById('login-email-display').textContent = email;
+  document.getElementById('login-step-email').style.display = 'none';
+  document.getElementById('login-step-pin').style.display = 'block';
+  document.getElementById('login-err').textContent = '';
+  pinBuf = ''; updateDots(); updateLoginBtn();
+}
+
+function backToEmail() {
+  document.getElementById('login-step-pin').style.display = 'none';
+  document.getElementById('login-step-email').style.display = 'block';
+  document.getElementById('login-err').textContent = '';
+  pinBuf = ''; updateDots();
+}
+
 function kp(d) { if(pinBuf.length>=4)return; pinBuf+=d; updateDots(); if(pinBuf.length===4)updateLoginBtn(); }
 function kpDel() { pinBuf=pinBuf.slice(0,-1); updateDots(); updateLoginBtn(); }
 function updateDots() {
@@ -471,55 +515,411 @@ function updateDots() {
   }
 }
 function updateLoginBtn() {
-  const u=document.getElementById('sel-user').value;
-  document.getElementById('btn-login').disabled=!(u&&pinBuf.length===4);
+  document.getElementById('btn-login').disabled = pinBuf.length !== 4;
 }
 
 async function doLogin() {
-  const uid=document.getElementById('sel-user').value;
-  const u=USERS[uid];
-  if(!u)return;
-  if(pinBuf!==u.pin){ document.getElementById('login-err').textContent='PIN incorrecto.'; pinBuf=''; updateDots(); updateLoginBtn(); return; }
+  if (!loginEmail || pinBuf.length !== 4) return;
+  showLoading('Verificando credenciales...');
+  try {
+    const r = await fetch(API_URL + '/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: loginEmail, pin: pinBuf })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      hideLoading();
+      document.getElementById('login-err').textContent = data.error || 'Error de autenticación.';
+      pinBuf = ''; updateDots(); updateLoginBtn();
+      return;
+    }
 
-  showLoading('Cargando desvíos...');
-  const ok = await loadDesvios();
-  hideLoading();
+    // Login OK
+    currentUser = {
+      email: data.email,
+      name: data.nombre,
+      role: data.rol,
+      uid: data.rol,
+      chip: ROL_CHIP[data.rol] || data.rol,
+      gold: data.rol === 'director' || data.rol === 'superusuario'
+    };
 
-  if (!ok) {
-    document.getElementById('login-err').textContent = 'No se pudo conectar con el servidor. Verificá la conexión.';
-    return;
+    // Superusuario → panel admin
+    if (data.rol === 'superusuario') {
+      hideLoading();
+      document.getElementById('screen-login').classList.remove('active');
+      document.getElementById('screen-admin').classList.add('active');
+      document.getElementById('admin-user-name').textContent = data.nombre;
+      adminTab('usuarios');
+      return;
+    }
+
+    // Rol normal → cargar app
+    const ok = await loadDesvios();
+    await loadDelegaciones();
+    hideLoading();
+    if (!ok) {
+      document.getElementById('login-err').textContent = 'No se pudo conectar con el servidor.';
+      return;
+    }
+    document.getElementById('hdr-user').textContent = data.nombre;
+    const rc = document.getElementById('hdr-role');
+    rc.textContent = currentUser.chip;
+    rc.className = 'role-chip' + (currentUser.gold ? ' gold' : '');
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('screen-app').classList.add('active');
+    currentTab = 0; renderTabs(); renderBody();
+    startAutoRefresh();
+
+  } catch(e) {
+    hideLoading();
+    document.getElementById('login-err').textContent = 'Error de conexión.';
+    pinBuf = ''; updateDots(); updateLoginBtn();
   }
-
-  currentUser={...u,uid};
-  document.getElementById('hdr-user').textContent=u.name;
-  const rc=document.getElementById('hdr-role');
-  rc.textContent=u.chip; rc.className='role-chip'+(u.gold?' gold':'');
-  document.getElementById('screen-login').classList.remove('active');
-  document.getElementById('screen-app').classList.add('active');
-  currentTab=0; renderTabs(); renderBody();
-  startAutoRefresh();
 }
 
 function doLogout() {
   stopAutoRefresh();
-  currentUser=null; pinBuf=''; updateDots();
-  document.getElementById('sel-user').value='';
-  document.getElementById('login-err').textContent='';
-  updateLoginBtn();
+  currentUser = null; pinBuf = ''; loginEmail = '';
+  updateDots();
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-step-email').style.display = 'block';
+  document.getElementById('login-step-pin').style.display = 'none';
+  document.getElementById('login-err').textContent = '';
   document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-admin').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════════════
+const ROLES_OPCIONES = ['operario','supervisor','jefe','gc','director','superusuario'];
+const ROL_CHIP = {
+  operario:'Operario', supervisor:'Supervisora QA', jefe:'Jefe Calidad',
+  gc:'GC', director:'Dirección', superusuario:'Admin'
+};
+
+function adminTab(tab) {
+  document.querySelectorAll('[id^="atab-"]').forEach(t => t.classList.remove('active'));
+  document.getElementById('atab-'+tab).classList.add('active');
+  if (tab === 'usuarios') renderAdminUsuarios();
+  if (tab === 'delegaciones') renderAdminDelegaciones();
+  if (tab === 'audit') renderAdminAudit();
+}
+
+const ROLES_LABEL = {
+  operario:'Operario', supervisor:'Supervisora QA', jefe:'Jefe de Calidad',
+  gc:'Garantía de Calidad', director:'Dirección', superusuario:'Superusuario'
+};
+
+async function renderAdminDelegaciones() {
+  const el = document.getElementById('admin-content');
+  el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
+  try {
+    const [rDel, rUsers] = await Promise.all([
+      fetch(`${API_URL}/api/admin/delegaciones?email=${encodeURIComponent(currentUser.email)}`),
+      fetch(`${API_URL}/api/admin/usuarios?email=${encodeURIComponent(currentUser.email)}`)
+    ]);
+    const delegaciones = await rDel.json();
+    const usuarios = await rUsers.json();
+    const activas = delegaciones.filter(d => d.activa);
+    const historial = delegaciones.filter(d => !d.activa);
+
+    el.innerHTML = `
+      <div class="sec-label">Delegaciones activas (${activas.length})</div>
+      ${activas.length ? activas.map(d => `
+        <div class="card" style="margin-bottom:10px;border-color:rgba(212,168,67,0.25)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px">
+                ${d.tipo === 'forzada' ? '⚡ DELEGACIÓN FORZADA' : '📋 Voluntaria'}
+              </div>
+              <div style="font-size:14px;color:var(--white)"><strong>${d.delegante_nombre}</strong></div>
+              <div style="font-size:12px;color:var(--teal)">↓ delegó en</div>
+              <div style="font-size:14px;color:var(--white)"><strong>${d.delegado_nombre}</strong></div>
+              <div style="font-size:11px;color:var(--gray-mid);margin-top:4px">
+                Rol delegado: ${ROLES_LABEL[d.delegante_rol]||d.delegante_rol}
+                ${d.motivo ? `· ${d.motivo}` : ''}
+              </div>
+              ${d.fecha_fin ? `<div style="font-size:11px;color:var(--orange)">Vence: ${new Date(d.fecha_fin).toLocaleDateString('es-AR')}</div>` : ''}
+            </div>
+            <button class="btn btn-danger" style="padding:6px 12px;font-size:12px" onclick="revocarDelegacion(${d.id})">Revocar</button>
+          </div>
+        </div>
+      `).join('') : '<div class="alert alert-info">No hay delegaciones activas.</div>'}
+
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="nuevaDelegacion(${JSON.stringify(usuarios).replace(/"/g,'&quot;')})">⚡ Nueva delegación</button>
+
+      ${historial.length ? `
+        <div class="sec-label" style="margin-top:20px">Historial (${historial.length})</div>
+        ${historial.slice(0,5).map(d => `
+          <div class="card" style="margin-bottom:8px;opacity:.6">
+            <div style="font-size:12px;color:var(--off)">${d.delegante_nombre} → ${d.delegado_nombre}</div>
+            <div style="font-size:11px;color:var(--gray-mid)">${d.tipo} · ${new Date(d.created_at).toLocaleDateString('es-AR')}</div>
+          </div>
+        `).join('')}
+      ` : ''}
+    `;
+  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando delegaciones</div></div>'; }
+}
+
+function nuevaDelegacion(usuariosJson) {
+  const usuarios = typeof usuariosJson === 'string' ? JSON.parse(usuariosJson.replace(/&quot;/g,'"')) : usuariosJson;
+  document.getElementById('modal-det-body').innerHTML = `
+    <div class="modal-title">Nueva Delegación</div>
+    <div class="alert alert-warning">⚡ El superusuario puede forzar la delegación en nombre de cualquier usuario.</div>
+    <div class="form-group"><label class="form-label">Delegar desde (quién delega)</label>
+      <select class="form-select" id="nd-delegante">
+        <option value="">— Seleccionar —</option>
+        ${usuarios.map(u => `<option value="${u.email}" data-rol="${u.rol}">${u.nombre} · ${ROLES_LABEL[u.rol]||u.rol}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Delegar hacia (quién recibe)</label>
+      <select class="form-select" id="nd-delegado">
+        <option value="">— Seleccionar —</option>
+        ${usuarios.map(u => `<option value="${u.email}">${u.nombre} · ${ROLES_LABEL[u.rol]||u.rol}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo</label>
+      <input class="form-input" id="nd-motivo" placeholder="Ej: Vacaciones 15-30 jun, Renuncia, etc.">
+    </div>
+    <div class="form-group"><label class="form-label">Fecha de vencimiento (opcional)</label>
+      <input class="form-input" type="date" id="nd-fecha-fin">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-det')">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearDelegacion()">Crear delegación</button>
+    </div>
+  `;
+  document.getElementById('modal-det').classList.add('open');
+}
+
+async function crearDelegacion() {
+  const delegante = document.getElementById('nd-delegante').value;
+  const delegado = document.getElementById('nd-delegado').value;
+  const motivo = document.getElementById('nd-motivo').value.trim();
+  const fechaFin = document.getElementById('nd-fecha-fin').value;
+  if (!delegante || !delegado) { toast('Seleccioná ambos usuarios.'); return; }
+  if (delegante === delegado) { toast('No podés delegar en vos mismo.'); return; }
+  showLoading('Creando delegación...');
+  try {
+    const r = await fetch(`${API_URL}/api/delegaciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        caller_email: currentUser.email,
+        delegante_email: delegante,
+        delegado_email: delegado,
+        motivo, fecha_fin: fechaFin || null
+      })
+    });
+    const data = await r.json();
+    hideLoading();
+    if (!r.ok) { toast(data.error || 'Error al crear delegación.'); return; }
+    closeModal('modal-det');
+    toast('Delegación creada ✓');
+    renderAdminDelegaciones();
+  } catch(e) { hideLoading(); toast('Error de conexión.'); }
+}
+
+async function revocarDelegacion(id) {
+  showLoading('Revocando...');
+  try {
+    await fetch(`${API_URL}/api/delegaciones/${id}/revocar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caller_email: currentUser.email })
+    });
+    hideLoading(); toast('Delegación revocada ✓'); renderAdminDelegaciones();
+  } catch(e) { hideLoading(); toast('Error.'); }
+}
+
+async function renderAdminUsuarios() {
+  const el = document.getElementById('admin-content');
+  el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
+  try {
+    const r = await fetch(`${API_URL}/api/admin/usuarios?email=${encodeURIComponent(currentUser.email)}`);
+    const usuarios = await r.json();
+    el.innerHTML = `
+      <div class="sec-label">Usuarios del sistema (${usuarios.length})</div>
+      ${usuarios.map(u => `
+        <div class="card" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--white)">${u.nombre}</div>
+              <div style="font-size:12px;color:var(--teal);margin:2px 0">${u.email}</div>
+              <div style="display:flex;gap:6px;margin-top:6px">
+                <span class="badge b-pgc">${u.rol}</span>
+                <span class="badge ${u.activo ? 'b-cerrado' : 'b-rechazado'}">${u.activo ? 'Activo' : 'Inactivo'}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="editarUsuario(${u.id},'${u.email}','${u.nombre}','${u.rol}',${u.activo})">Editar</button>
+              <button class="btn btn-warning" style="padding:6px 12px;font-size:12px;background:var(--orange-dim);color:var(--orange);border:1px solid rgba(240,112,48,0.3)" onclick="resetearPin(${u.id},'${u.nombre}')">Reset PIN</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="nuevoUsuario()">+ Nuevo usuario</button>
+    `;
+  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando usuarios</div></div>'; }
+}
+
+async function renderAdminAudit() {
+  const el = document.getElementById('admin-content');
+  el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
+  try {
+    const r = await fetch(`${API_URL}/api/audit?email=${encodeURIComponent(currentUser.email)}&limit=50`);
+    const logs = await r.json();
+    el.innerHTML = `
+      <div class="sec-label">Últimas ${logs.length} acciones</div>
+      <div class="card">
+        ${logs.map((l,i) => `
+          <div class="hist-item">
+            <div class="hist-line">
+              <div class="hist-dot" style="background:${l.accion.includes('LOGIN')?'var(--green)':l.accion.includes('CREAR')?'var(--teal)':'var(--gold)'}"></div>
+              ${i < logs.length-1 ? '<div class="hist-connector"></div>' : ''}
+            </div>
+            <div class="hist-body">
+              <div class="hist-action">${l.accion} <span style="color:var(--teal);font-size:11px">${l.entidad}</span></div>
+              <div class="hist-meta">${l.usuario_nombre} · ${l.usuario_email}</div>
+              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')}</div>
+              ${l.detalle ? `<div class="hist-detail">${l.detalle}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando audit trail</div></div>'; }
+}
+
+function nuevoUsuario() {
+  document.getElementById('modal-det-body').innerHTML = `
+    <div class="modal-title">Nuevo Usuario</div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="nu-email" type="email" placeholder="usuario@empresa.com"></div>
+    <div class="form-group"><label class="form-label">Nombre completo *</label><input class="form-input" id="nu-nombre" placeholder="Nombre Apellido"></div>
+    <div class="form-group"><label class="form-label">Rol *</label>
+      <select class="form-select" id="nu-rol">
+        ${ROLES_OPCIONES.map(r => `<option value="${r}">${r}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">PIN inicial</label><input class="form-input" id="nu-pin" type="number" placeholder="1234 (default)" maxlength="4"></div>
+    <div class="alert alert-warning">El usuario deberá cambiar su PIN al primer ingreso.</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-det')">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearUsuario()">Crear usuario</button>
+    </div>
+  `;
+  document.getElementById('modal-det').classList.add('open');
+}
+
+async function crearUsuario() {
+  const email = document.getElementById('nu-email').value.trim();
+  const nombre = document.getElementById('nu-nombre').value.trim();
+  const rol = document.getElementById('nu-rol').value;
+  const pin = document.getElementById('nu-pin').value || '1234';
+  if (!email || !nombre) { toast('Completá email y nombre.'); return; }
+  showLoading('Creando usuario...');
+  try {
+    const r = await fetch(`${API_URL}/api/admin/usuarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caller_email: currentUser.email, email, nombre, rol, pin })
+    });
+    const data = await r.json();
+    hideLoading();
+    if (!r.ok) { toast(data.error || 'Error al crear usuario.'); return; }
+    closeModal('modal-det');
+    toast(`Usuario ${nombre} creado ✓`);
+    renderAdminUsuarios();
+  } catch(e) { hideLoading(); toast('Error de conexión.'); }
+}
+
+function editarUsuario(id, email, nombre, rol, activo) {
+  document.getElementById('modal-det-body').innerHTML = `
+    <div class="modal-title">Editar Usuario</div>
+    <div style="font-size:12px;color:var(--teal);margin-bottom:14px">${email}</div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="eu-nombre" value="${nombre}"></div>
+    <div class="form-group"><label class="form-label">Rol</label>
+      <select class="form-select" id="eu-rol">
+        ${ROLES_OPCIONES.map(r => `<option value="${r}" ${r===rol?'selected':''}>${r}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Estado</label>
+      <select class="form-select" id="eu-activo">
+        <option value="true" ${activo?'selected':''}>Activo</option>
+        <option value="false" ${!activo?'selected':''}>Inactivo</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-det')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarUsuario(${id})">Guardar</button>
+    </div>
+  `;
+  document.getElementById('modal-det').classList.add('open');
+}
+
+async function guardarUsuario(id) {
+  const nombre = document.getElementById('eu-nombre').value.trim();
+  const rol = document.getElementById('eu-rol').value;
+  const activo = document.getElementById('eu-activo').value === 'true';
+  showLoading('Guardando...');
+  try {
+    const r = await fetch(`${API_URL}/api/admin/usuarios/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caller_email: currentUser.email, nombre, rol, activo })
+    });
+    hideLoading();
+    if (!r.ok) { toast('Error al guardar.'); return; }
+    closeModal('modal-det'); toast('Usuario actualizado ✓'); renderAdminUsuarios();
+  } catch(e) { hideLoading(); toast('Error de conexión.'); }
+}
+
+function resetearPin(id, nombre) {
+  document.getElementById('modal-det-body').innerHTML = `
+    <div class="modal-title">Resetear PIN</div>
+    <div class="alert alert-warning">Vas a resetear el PIN de <strong>${nombre}</strong>.</div>
+    <div class="form-group"><label class="form-label">Nuevo PIN (4 dígitos)</label>
+      <input class="form-input" id="rp-pin" type="number" placeholder="Ej: 1234" maxlength="4">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-det')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarResetPin(${id})">Resetear PIN</button>
+    </div>
+  `;
+  document.getElementById('modal-det').classList.add('open');
+}
+
+async function confirmarResetPin(id) {
+  const pin = document.getElementById('rp-pin').value;
+  if (!pin || pin.length !== 4) { toast('Ingresá un PIN de 4 dígitos.'); return; }
+  showLoading('Reseteando PIN...');
+  try {
+    const r = await fetch(`${API_URL}/api/admin/usuarios/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caller_email: currentUser.email, pin })
+    });
+    hideLoading();
+    if (!r.ok) { toast('Error al resetear PIN.'); return; }
+    closeModal('modal-det'); toast('PIN reseteado ✓');
+  } catch(e) { hideLoading(); toast('Error de conexión.'); }
 }
 
 // ══════════════════════════════════════════════════════
 // TABS Y RENDERING
 // ══════════════════════════════════════════════════════
 function getTabs() {
-  const uid=currentUser.uid;
-  if(uid==='operario')   return ['Mis Desvíos','Nuevo Desvío'];
-  if(uid==='supervisor') return ['Para Revisar','Todos','Dashboard'];
-  if(uid==='jefe')       return ['Para Aprobar','Todos','Dashboard'];
-  if(uid==='gc')         return ['Para Cerrar','Todos','Dashboard'];
-  if(uid==='director')   return ['Dashboard Ejecutivo','Todos los Desvíos'];
+  const uid=currentUser.uid; // uid = rol
+  if(uid==='operario')                      return ['Mis Desvíos','Nuevo Desvío'];
+  if(uid==='supervisor')                    return ['Para Revisar','Todos','Dashboard'];
+  if(uid==='jefe')                          return ['Para Aprobar','Todos','Dashboard'];
+  if(uid==='gc')                            return ['Para Cerrar','Todos','Dashboard','Audit'];
+  if(uid==='director'||uid==='superusuario') return ['Dashboard Ejecutivo','Todos los Desvíos'];
+  return ['Todos'];
 }
 function renderTabs() {
   const tabs=getTabs();
@@ -550,10 +950,61 @@ function renderBody() {
     if(tab==='Para Cerrar') el.innerHTML=listaFiltrada(['pendiente_gc']);
     if(tab==='Todos')       el.innerHTML=listaTodos();
     if(tab==='Dashboard')   el.innerHTML=dashboard();
+    if(tab==='Audit')       { renderAuditInApp(); return; }
   } else if(uid==='director'){
     if(tab==='Dashboard Ejecutivo') el.innerHTML=dashboardDirector();
     if(tab==='Todos los Desvíos')   el.innerHTML=listaTodos();
   }
+}
+
+// ══════════════════════════════════════════════════════
+// DELEGACIONES
+// ══════════════════════════════════════════════════════
+async function loadDelegaciones() {
+  try {
+    const r = await fetch(`${API_URL}/api/delegaciones?email=${encodeURIComponent(currentUser.email)}`);
+    misDelegaciones = await r.json();
+  } catch(e) { misDelegaciones = []; }
+}
+
+function getDelegacionPara(rol) {
+  // Devuelve la delegación activa si tengo delegada la firma de alguien con ese rol
+  return misDelegaciones.find(d => d.delegante_rol === rol);
+}
+
+function badgeDelegacion(delegacion) {
+  return `<span class="badge" style="background:rgba(212,168,67,0.15);color:var(--gold);border:1px solid rgba(212,168,67,0.3);font-size:9px">⚡ Por: ${delegacion.delegante_nombre.split(' ')[0]}</span>`;
+}
+
+// ══════════════════════════════════════════════════════
+// AUDIT EN APP (para GC)
+// ══════════════════════════════════════════════════════
+async function renderAuditInApp() {
+  const el = document.getElementById('app-body');
+  el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
+  try {
+    const r = await fetch(`${API_URL}/api/audit?email=${encodeURIComponent(currentUser.email)}&limit=100`);
+    const logs = await r.json();
+    el.innerHTML = `
+      <div class="sec-label">Audit Trail — últimas ${logs.length} acciones</div>
+      <div class="card">
+        ${logs.map((l,i) => `
+          <div class="hist-item">
+            <div class="hist-line">
+              <div class="hist-dot" style="background:${l.accion.includes('LOGIN')?'var(--green)':l.accion.includes('CREAR')?'var(--teal)':'var(--gold)'}"></div>
+              ${i < logs.length-1 ? '<div class="hist-connector"></div>' : ''}
+            </div>
+            <div class="hist-body">
+              <div class="hist-action">${l.accion} <span style="color:var(--teal);font-size:11px">[${l.entidad}]</span></div>
+              <div class="hist-meta">${l.usuario_nombre} · ${l.usuario_email}</div>
+              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')}</div>
+              ${l.detalle ? `<div class="hist-detail">${l.detalle}</div>` : ''}
+              ${l.entidad_id ? `<div class="hist-detail">Ref: ${l.entidad_id}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando audit trail</div></div>'; }
 }
 
 // ══════════════════════════════════════════════════════
@@ -562,10 +1013,23 @@ function renderBody() {
 function badgeEstado(e){const m=ESTADO_MAP[e]||{label:e,cls:'b-ps'};return `<span class="badge ${m.cls}">${m.label}</span>`;}
 function badgeSev(s){return `<span class="badge ${SEV_MAP[s]||''}">${s}</span>`;}
 function itemHtml(d){
+  // Verificar si este desvío requiere acción delegada
+  const delegBadge = (() => {
+    if(!misDelegaciones.length) return '';
+    const estadoRolMap = {
+      pendiente_supervisor: 'supervisor',
+      pendiente_jefe: 'jefe',
+      pendiente_gc: 'gc'
+    };
+    const rolRequerido = estadoRolMap[d.estado];
+    if(!rolRequerido) return '';
+    const del = getDelegacionPara(rolRequerido);
+    return del ? badgeDelegacion(del) : '';
+  })();
   return `<div class="desvio-item" onclick="openDetalle('${d.id}')">
     <div class="di-head">
       <div>
-        <div class="di-id">${d.id}</div>
+        <div class="di-id">${d.id} ${delegBadge}</div>
         <div class="di-desc">${(d.descripcion||'').substring(0,85)}${(d.descripcion||'').length>85?'…':''}</div>
       </div>
       <div style="flex-shrink:0;margin-left:8px">${badgeEstado(d.estado)}</div>
@@ -579,7 +1043,7 @@ function itemHtml(d){
   </div>`;
 }
 function listaOperario(){
-  const mios=DB.filter(d=>d.operario===currentUser.name);
+  const mios=DB.filter(d=>d.operario===currentUser.name||d.operario===currentUser.email);
   if(!mios.length) return emptyHtml('Sin desvíos','Aún no reportaste ningún desvío.');
   return `<div class="sec-label">Mis reportes (${mios.length})</div>`+mios.map(itemHtml).join('');
 }
@@ -724,7 +1188,11 @@ function openDetalle(id){
   const uid=currentUser.uid;
   let accionesHtml='';
 
-  if(uid==='supervisor'&&d.estado==='pendiente_supervisor'){
+  const delSup = getDelegacionPara('supervisor');
+  const delJefe = getDelegacionPara('jefe');
+  const delGC = getDelegacionPara('gc');
+
+  if((uid==='supervisor'||delSup)&&d.estado==='pendiente_supervisor'){
     accionesHtml=`<hr>
       <div class="sec-label">Acción del Supervisor de QA</div>
       <div class="ia-box">
@@ -745,11 +1213,12 @@ function openDetalle(id){
         <textarea class="form-textarea" id="sup-accion">${d.accion_inmediata||''}</textarea></div>
       <div class="form-group"><label class="form-label">Observaciones</label>
         <textarea class="form-textarea" id="sup-obs">${d.obs_sup||''}</textarea></div>
+      ${delSup?`<div class="alert" style="background:rgba(212,168,67,0.08);border-left:3px solid var(--gold);color:var(--off)">⚡ Actuando en delegación de <strong>${delSup.delegante_nombre}</strong></div>`:''}
       <div class="alert alert-warning">Al enviar, el desvío pasará al Jefe de Calidad.</div>
       <button class="btn btn-gold btn-full" onclick="supEnviar('${id}')">Enviar al Jefe →</button>`;
   }
 
-  if(uid==='jefe'&&d.estado==='pendiente_jefe'){
+  if((uid==='jefe'||delJefe)&&d.estado==='pendiente_jefe'){
     accionesHtml=`<hr>
       <div class="sec-label">Plan CAPA — Jefe de Calidad</div>
       <div class="form-group"><label class="form-label">Causa raíz final</label>
@@ -778,8 +1247,8 @@ function openDetalle(id){
       </div>`;
   }
 
-  if(uid==='gc'&&d.estado==='pendiente_gc'){
-    if(d.operario===currentUser.name){
+  if((uid==='gc'||delGC)&&d.estado==='pendiente_gc'){
+    if(d.operario===currentUser.name||d.operario===currentUser.email){
       accionesHtml=`<div class="alert alert-danger">⛔ No podés cerrar un desvío que vos mismo/a reportaste. Principio de segregación GMP.</div>`;
     } else {
       const items=[
@@ -865,7 +1334,8 @@ async function supEnviar(id){
       obs_sup:document.getElementById('sup-obs').value.trim(),
       severidad:document.getElementById('sup-crit').value,
       estado:'pendiente_jefe',
-      historial:JSON.stringify(historial)
+      historial:JSON.stringify(historial),
+      _usuario:{email:currentUser.email,nombre:currentUser.name}
     });
     await loadDesvios();
     hideLoading(); closeModal('modal-det'); renderBody(); toast('Enviado al Jefe ✓');
