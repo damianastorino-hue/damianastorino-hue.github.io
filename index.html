@@ -596,10 +596,6 @@ function doLogout() {
 // ADMIN PANEL
 // ══════════════════════════════════════════════════════
 const ROLES_OPCIONES = ['operario','supervisor','jefe','gc','director','superusuario'];
-const ROL_CHIP = {
-  operario:'Operario', supervisor:'Supervisora QA', jefe:'Jefe Calidad',
-  gc:'GC', director:'Dirección', superusuario:'Admin'
-};
 
 function adminTab(tab) {
   document.querySelectorAll('[id^="atab-"]').forEach(t => t.classList.remove('active'));
