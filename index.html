@@ -767,28 +767,32 @@ async function renderAdminAudit() {
   const el = document.getElementById('admin-content');
   el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
   try {
-    const r = await fetch(`${API_URL}/api/audit?email=${encodeURIComponent(currentUser.email)}&limit=50`);
+    const r = await fetch(`${API_URL}/api/audit?email=${encodeURIComponent(currentUser.email)}&limit=100`);
+    if (!r.ok) { el.innerHTML = `<div class="empty"><div class="empty-title">Error ${r.status}: sin acceso al audit trail</div></div>`; return; }
     const logs = await r.json();
+    if (!Array.isArray(logs) || logs.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-title">Sin registros aún</div><div class="empty-sub">Las acciones aparecerán aquí a medida que se realicen.</div></div>';
+      return;
+    }
+    const colorDot = a => a.includes('LOGIN') ? 'var(--green)' : a.includes('CREAR') ? 'var(--teal)' : a.includes('REVOCAR') || a.includes('rechazado') ? 'var(--red)' : 'var(--gold)';
     el.innerHTML = `
-      <div class="sec-label">Últimas ${logs.length} acciones</div>
+      <div class="sec-label">Últimas ${logs.length} acciones registradas</div>
       <div class="card">
         ${logs.map((l,i) => `
           <div class="hist-item">
             <div class="hist-line">
-              <div class="hist-dot" style="background:${l.accion.includes('LOGIN')?'var(--green)':l.accion.includes('CREAR')?'var(--teal)':'var(--gold)'}"></div>
+              <div class="hist-dot" style="background:${colorDot(l.accion)}"></div>
               ${i < logs.length-1 ? '<div class="hist-connector"></div>' : ''}
             </div>
             <div class="hist-body">
-              <div class="hist-action">${l.accion} <span style="color:var(--teal);font-size:11px">${l.entidad}</span></div>
-              <div class="hist-meta">${l.usuario_nombre} · ${l.usuario_email}</div>
-              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')}</div>
-              ${l.detalle ? `<div class="hist-detail">${l.detalle}</div>` : ''}
+              ${l.detalle ? `<div class="hist-action">${l.detalle}</div>` : `<div class="hist-action">${l.accion}</div>`}
+              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')} · ${l.usuario_email}</div>
+              ${l.entidad_id ? `<div class="hist-meta" style="color:var(--teal)">Ref: ${l.entidad_id}</div>` : ''}
             </div>
           </div>
         `).join('')}
-      </div>
-    `;
-  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando audit trail</div></div>'; }
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-title">Error cargando audit trail</div><div class="empty-sub">${e.message}</div></div>`; }
 }
 
 function nuevoUsuario() {
@@ -980,27 +984,31 @@ async function renderAuditInApp() {
   el.innerHTML = '<div class="empty"><div class="loading-spinner" style="margin:0 auto"></div></div>';
   try {
     const r = await fetch(`${API_URL}/api/audit?email=${encodeURIComponent(currentUser.email)}&limit=100`);
+    if (!r.ok) { el.innerHTML = `<div class="empty"><div class="empty-title">Error ${r.status}: sin acceso al audit trail</div></div>`; return; }
     const logs = await r.json();
+    if (!Array.isArray(logs) || logs.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-title">Sin registros aún</div><div class="empty-sub">Las acciones aparecerán aquí a medida que se realicen.</div></div>';
+      return;
+    }
+    const colorDot = a => a.includes('LOGIN') ? 'var(--green)' : a.includes('CREAR') ? 'var(--teal)' : a.includes('REVOCAR') || a.includes('rechazado') ? 'var(--red)' : 'var(--gold)';
     el.innerHTML = `
       <div class="sec-label">Audit Trail — últimas ${logs.length} acciones</div>
       <div class="card">
         ${logs.map((l,i) => `
           <div class="hist-item">
             <div class="hist-line">
-              <div class="hist-dot" style="background:${l.accion.includes('LOGIN')?'var(--green)':l.accion.includes('CREAR')?'var(--teal)':'var(--gold)'}"></div>
+              <div class="hist-dot" style="background:${colorDot(l.accion)}"></div>
               ${i < logs.length-1 ? '<div class="hist-connector"></div>' : ''}
             </div>
             <div class="hist-body">
-              <div class="hist-action">${l.accion} <span style="color:var(--teal);font-size:11px">[${l.entidad}]</span></div>
-              <div class="hist-meta">${l.usuario_nombre} · ${l.usuario_email}</div>
-              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')}</div>
-              ${l.detalle ? `<div class="hist-detail">${l.detalle}</div>` : ''}
-              ${l.entidad_id ? `<div class="hist-detail">Ref: ${l.entidad_id}</div>` : ''}
+              ${l.detalle ? `<div class="hist-action">${l.detalle}</div>` : `<div class="hist-action">${l.accion}</div>`}
+              <div class="hist-meta">${new Date(l.created_at).toLocaleString('es-AR')} · ${l.usuario_email}</div>
+              ${l.entidad_id ? `<div class="hist-meta" style="color:var(--teal)">Ref: ${l.entidad_id}</div>` : ''}
             </div>
           </div>
         `).join('')}
       </div>`;
-  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-title">Error cargando audit trail</div></div>'; }
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-title">Error cargando audit trail</div><div class="empty-sub">${e.message}</div></div>`; }
 }
 
 // ══════════════════════════════════════════════════════
